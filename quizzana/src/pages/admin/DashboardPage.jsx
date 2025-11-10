@@ -1,10 +1,13 @@
-function Dashboard() {
+import React, { useState } from 'react';
+import SideBar from './../../components/layout/SideBar';
+
+import './DashboardPage.css';
+
+export default function Dashboard() {
   return (
     <div>
-      <h1>Dashboard Admin</h1>
-      {/* Admin dashboard content will be implemented here */}
+      <SideBar/>
+      {/* Edit quiz content */}
     </div>
-  );
+  )
 }
-
-export default Dashboard;

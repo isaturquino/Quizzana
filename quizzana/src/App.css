@@ -1,0 +1,15 @@
+:root {
+  --cor-roxo-principal: #C86BFA;
+  --cor-roxo-médio: #C86BFA;
+  --cor-roxo-escuro: #3D0066;
+  --cor-amarelo-claro: #FFEE32;
+  --cor-amarelo-escuro: #FDC500;
+  --cor-amarelo-médio: #FFD500;
+
+}
+
+
+*{
+    padding: 0;
+    margin: 0;
+}
