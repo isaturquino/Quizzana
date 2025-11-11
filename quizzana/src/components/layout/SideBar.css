@@ -8,20 +8,29 @@
   border-right: 1px solid #e0e0e0;
   transition: width 0.3s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .sidebar.open {
- max-width: 200px;
+  width: 200px;
 }
 
 .sidebar.closed {
-  width: 60px;
+  width: 40px;
   padding: 16px 8px;
 }
 
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .toggle-button {
-  width: 44px;
-  height: 44px;
+  width: 40px; 
+  height: 40px; 
   background-color: var(--cor-roxo-claro);
   border: none;
   border-radius: 6px;
@@ -29,7 +38,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--cor-roxo-escuro);}
+  color: var(--cor-roxo-escuro);
+  flex-shrink: 0;
+}
 
 .toggle-button:hover {
   background-color: var(--cor-roxo-claro);
@@ -39,30 +50,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  font-weight: 600;
-  font-size: 16px;
+  padding: 0;
 }
 
-.logo-icon {
-  width: 24px;
-  height: 24px;
-  background-color: #000;
-  color: #fff;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.logo-text {
-  color: #000;
+.logo img {
+  width: 200px; /* Diminuído */
+  height: auto;
+  object-fit: contain;
 }
 
 .search-container {
   position: relative;
   padding: 0;
+  width: 100%;
 }
 
 .search-icon {
@@ -81,6 +81,7 @@
   font-size: 14px;
   outline: none;
   background-color: #fff;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
@@ -91,6 +92,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .menu-item {
@@ -107,6 +111,7 @@
   text-align: left;
   transition: all 0.2s ease;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .menu-item:hover {
@@ -115,7 +120,7 @@
 
 .menu-item.active {
   background-color: var(--cor-roxo-médio);
-  color:black;
+  color: black;
 }
 
 .menu-item.action {
@@ -124,8 +129,8 @@
 
 .perfil-section {
   margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0;
+  margin-bottom: 30px;
+  border-top: 1px solid #e0e0e0;
 }
 
 .perfil-label {

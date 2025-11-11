@@ -1,10 +1,13 @@
+import React, { useState } from 'react';
+import SideBar from './../../components/layout/SideBar';
+
 function Questions() {
-  return (
-    <div>
-      <h1>Gerenciar Questões</h1>
-      {/* Questions management will be implemented here */}
-    </div>
-  );
+   return (
+   <div>
+     <SideBar/>
+     {/* Question page content */}
+   </div>
+ )
 }
 
 export default Questions;

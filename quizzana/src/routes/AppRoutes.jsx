@@ -11,7 +11,7 @@ import Dashboard from '../pages/admin/DashboardPage';
 import Questions from '../pages/admin/QuestionsPage';
 import CreateQuiz from '../pages/admin/CreateQuizPage';
 import ManageSalas from '../pages/admin/ManageSalaPage';
-import EditQuiz from '../pages/admin/EditQuizPage';
+import Biblioteca from '../pages/admin/BibliotecaQuizPage';
 
 // Player Pages
 import JoinGame from '../pages/player/JoinGame';
@@ -57,10 +57,10 @@ function AppRoutes() {
             } 
           />
           <Route 
-            path="/admin/edit-quiz/:id" 
+            path="/admin/biblioteca" 
             element={
               <ProtectedRoute requiredRole="admin">
-                <EditQuiz />
+                <Biblioteca />
               </ProtectedRoute>
             } 
           />
