@@ -13,8 +13,8 @@ import {
   Menu,
 } from "lucide-react";
 
-const Sidebar = ({ activeItem = "menu" }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const Sidebar = ({ activeItem = "menu", isOpen, setIsOpen }) => {
+
 
   const menuItems = [
     { id: "menu", label: "Menu", icon: LayoutGrid },

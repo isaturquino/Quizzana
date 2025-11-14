@@ -7,7 +7,10 @@
   gap: 16px;
   border-right: 1px solid #e0e0e0;
   transition: width 0.3s ease;
-  position: relative;
+  position: fixed; /* ADICIONADO */
+  left: 0; /* ADICIONADO */
+  top: 0; /* ADICIONADO */
+  z-index: 200; /* ADICIONADO - menor que o header */
   overflow: hidden;
 }
 
@@ -20,6 +23,7 @@
   padding: 16px 8px;
 }
 
+/* Resto do CSS permanece igual */
 .header-container {
   display: flex;
   align-items: center;
@@ -31,19 +35,14 @@
 .toggle-button {
   width: 40px; 
   height: 40px; 
-  background-color: var(--cor-roxo-claro);
   border: none;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--cor-roxo-escuro);
+  color: var(--cor-roxo-médio);
   flex-shrink: 0;
-}
-
-.toggle-button:hover {
-  background-color: var(--cor-roxo-claro);
 }
 
 .logo {
@@ -54,7 +53,7 @@
 }
 
 .logo img {
-  width: 200px; /* Diminuído */
+  width: 200px; 
   height: auto;
   object-fit: contain;
 }
@@ -85,7 +84,7 @@
 }
 
 .search-input:focus {
-  border-color: var(--cor-roxo-médio);
+  border-color: var(--cor-roxo-claro);
 }
 
 .menu {
@@ -119,7 +118,7 @@
 }
 
 .menu-item.active {
-  background-color: var(--cor-roxo-médio);
+  background-color: var(--cor-roxo-claro);
   color: black;
 }
 
