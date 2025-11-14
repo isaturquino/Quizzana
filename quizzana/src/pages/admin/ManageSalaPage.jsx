@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import SideBar from './../../components/layout/SideBar';
+import Header from '../../components/layout/Header';
+
 
 function ManageSalas() {
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   return (
-    <div>
-      <SideBar/>
-      <h1>Gerenciar Salas</h1>
+  <div className="layout">
+    <SideBar 
+      isOpen={isSidebarOpen}
+      setIsOpen={setIsSidebarOpen}
+    />
+    <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <Header isSidebarOpen={isSidebarOpen} />
     </div>
-  );
+  </div>
+);
 }
 
 export default ManageSalas;

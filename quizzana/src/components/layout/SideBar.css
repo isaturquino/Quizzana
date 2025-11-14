@@ -58,8 +58,9 @@
   object-fit: contain;
 }
 
-.search-container {
+.search-container-sidebar {
   position: relative;
+  color: black;
   padding: 0;
   width: 100%;
 }

@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import SideBar from './../../components/layout/SideBar';
+import Header from '../../components/layout/Header';
+
 export default function EditQuiz() {
-  return (
-    <div className="min-h-screen p-6">
-      <SideBar/>
-      <h1>Editar Quiz</h1>
-      {/* Edit quiz content */}
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    return (
+  <div className="layout">
+    <SideBar 
+      isOpen={isSidebarOpen}
+      setIsOpen={setIsSidebarOpen}
+    />
+    <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <Header isSidebarOpen={isSidebarOpen} />
     </div>
-  )
+  </div>
+);
 }

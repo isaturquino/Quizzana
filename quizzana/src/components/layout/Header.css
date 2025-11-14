@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: flex-end;
   padding: 0 24px;
-  z-index: 200; /* maior para não ficar atrás do conteúdo */
+  z-index: 200; 
   transition: left 0.3s ease, width 0.3s ease;
 }
 .header.sidebar-open {
@@ -42,6 +42,7 @@
 .header-search {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(204, 181, 236, 0.6);
@@ -51,6 +52,7 @@
 
 .search-icon {
   color: rgba(255, 255, 255, 0.9);
+  margin-left: 20px;
   flex-shrink: 0;
 }
 
@@ -71,7 +73,9 @@
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 40px;
+  margin-right: 30px;
 }
 
 .header-logo-text {
