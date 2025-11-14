@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import SideBar from './../../components/layout/SideBar';
+import Header from '../../components/layout/Header';
+
 function CreateQuiz() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   return (
-    <div>
-      <SideBar/>
-      <h1>Criar Quiz</h1>
-      {/* Quiz creation form will be implemented here */}
+  <div className="layout">
+    <SideBar 
+      isOpen={isSidebarOpen}
+      setIsOpen={setIsSidebarOpen}
+    />
+    <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      <Header isSidebarOpen={isSidebarOpen} />
     </div>
-  );
+  </div>
+);
 }
 
 export default CreateQuiz;

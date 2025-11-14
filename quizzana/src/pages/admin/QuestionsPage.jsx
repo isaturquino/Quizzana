@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import SideBar from './../../components/layout/SideBar';
+import Header from '../../components/layout/Header';
+
+import './QuestionsPage.css';
 
 function Questions() {
-   return (
-   <div>
-     <SideBar/>
-     {/* Question page content */}
-   </div>
- )
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  return (
+    <div className="layout">
+      <SideBar 
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        <Header isSidebarOpen={isSidebarOpen} />
+      </div>
+    </div>
+  );
 }
 
 export default Questions;
