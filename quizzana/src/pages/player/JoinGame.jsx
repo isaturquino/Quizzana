@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./JoinGame.css";
 import quizzanaLogo from "../../assets/imgs/header.jpg";
+import logo from "../../assets/imgs/quizzana.png"; 
 
 export default function JoinGame() {
   const [nome, setNome] = useState("");
@@ -18,25 +19,28 @@ export default function JoinGame() {
 
   return (
     <>
-      {/* Barra Superior */}
-      <div className="navbar">
-        <div className="navbar-logo">Quizzana</div>
-      </div>
+      <div className="navbar"></div>
 
       <div className="join-container">
-        
-        {/* Lado Esquerdo (com imagem de fundo) */}
         <div className="join-left">
+          {/* fundo como elemento <img> absoluto */}
           <img 
             src={quizzanaLogo} 
             className="join-left-bg" 
-            alt="Background Quizzana" 
+            alt="Background Quizzana"
           />
-         
+
+          {/* logo - grande, centralizada e com flutuação opcional */}
+          <img 
+            src={logo} 
+            className="join-logo idle" 
+            alt="Logo Quizzana"
+          />
+
+          <h1 className="join-title">Quizzana</h1>
           <p className="join-subtitle">Olá, seja bem-vindo.</p>
         </div>
 
-        {/* Lado Direito (conteúdo principal) */}
         <div className="join-right">
           <div className="join-content">
             <h2 className="join-heading">Participar do Quiz</h2>
