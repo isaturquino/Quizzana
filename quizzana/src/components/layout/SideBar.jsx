@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // ← Import adicionado
 import "./SideBar.css";
 import quizzanalogo from "../../assets/imgs/quizzanalogo.png";
 import {
@@ -13,16 +14,22 @@ import {
   Menu,
 } from "lucide-react";
 
-  const Sidebar = ({ activeItem = "menu", isOpen, setIsOpen }) => {
-
+const Sidebar = ({ activeItem = "menu", isOpen, setIsOpen }) => {
+  const navigate = useNavigate(); // ← Hook adicionado
 
   const menuItems = [
-    { id: "menu", label: "Menu", icon: LayoutGrid },
-    { id: "meus-quizzes", label: "Meus quizzes", icon: BookOpen },
-    { id: "banco-questoes", label: "Banco de questões", icon: Database },
-    { id: "resultados", label: "Resultados", icon: BarChart3 },
-    { id: "criar-quiz", label: "Criar Quiz", icon: Plus, isAction: true },
+    { id: "menu", label: "Menu", icon: LayoutGrid, path: "/admin/dashboard" },
+    { id: "meus-quizzes", label: "Meus quizzes", icon: BookOpen, path: "/admin/biblioteca" },
+    { id: "banco-questoes", label: "Banco de questões", icon: Database, path: "/admin/questions" },
+    { id: "resultados", label: "Resultados", icon: BarChart3, path: "/admin/results/:salaId" },
+    { id: "criar-quiz", label: "Criar Quiz", icon: Plus, isAction: true, path: "/admin/create-quiz" },
   ];
+
+  const handleNavigation = (path, itemId) => {
+    navigate(path);
+    // Se quiser atualizar o activeItem também:
+    // setActiveItem(itemId); // Você precisaria receber esta prop ou gerenciar o estado
+  };
 
   return (
     <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
@@ -33,7 +40,7 @@ import {
           </div>
         )}
         <button className="toggle-button" onClick={() => setIsOpen(!isOpen)}>
-          <Menu size={18} /> {/* Diminuído também */}
+          <Menu size={18} />
         </button>
       </div>
 
@@ -51,6 +58,7 @@ import {
                   className={`menu-item ${isActive ? "active" : ""} ${
                     item.isAction ? "action" : ""
                   }`}
+                  onClick={() => handleNavigation(item.path, item.id)}
                 >
                   <Icon size={18} />
                   <span>{item.label}</span>
@@ -62,7 +70,10 @@ import {
           {/* Perfil Section */}
           <div className="perfil-section">
             <span className="perfil-label">Perfil</span>
-            <button className="menu-item">
+            <button 
+              className="menu-item"
+              onClick={() => navigate("/admin/settings")}
+            >
               <Settings size={18} />
               <span>Configurações</span>
             </button>
