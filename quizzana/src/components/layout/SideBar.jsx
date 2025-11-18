@@ -39,16 +39,6 @@ import {
 
       {isOpen && (
         <>
-          {/* Search Bar */}
-          <div className="search-container">
-            <Search className="search-icon" size={16} />
-            <input
-              type="text"
-              placeholder="Buscar..."
-              className="search-input"
-            />
-          </div>
-
           {/* Menu Items */}
           <nav className="menu">
             {menuItems.map((item) => {
