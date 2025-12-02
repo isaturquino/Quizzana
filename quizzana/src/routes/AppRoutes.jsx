@@ -108,7 +108,7 @@ function AppRoutes() {
           />
           
           {/* Default Route */}
-          <Route path="/" element={<Navigate to="/join" replace />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
           
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />

@@ -2,7 +2,10 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { User, Mail, Lock } from "lucide-react"
-import googleLogo from "../../assets/imgs/googlelogo.png";
+import googleLogo from "../../assets/imgs/googlelogo.png"
+import { signUpWithEmail, signInWithGoogle } from "../../services/supabase/auth"
+import { supabase } from "../../services/supabase/supabaseClient"
+
 import "./RegisterPage.css"
 
 export default function RegisterPage() {
@@ -12,12 +15,6 @@ export default function RegisterPage() {
     senha: "",
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Implementar lógica de registro com Supabase depois
-    console.log("Registro:", formData)
-  }
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -25,9 +22,61 @@ export default function RegisterPage() {
     })
   }
 
-  const handleGoogleSignup = () => {
-    // Implementar signup com Google via Supabase depois
-    console.log("Signup com Google")
+  // --- Registro com email/senha ---
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    // 1️⃣ Cria usuário no Supabase Auth
+    const { data, error } = await signUpWithEmail(formData)
+    if (error) {
+      alert("Erro ao registrar: " + error.message)
+      return
+    }
+
+    const userId = data.user.id
+
+    // 2️⃣ Insere na tabela administrador
+    const { error: insertError } = await supabase.from("administrador").insert({
+      id_auth: userId,
+      nome: formData.nome,
+      email: formData.email,
+    })
+
+    if (insertError) {
+      alert("Erro ao salvar administrador: " + insertError.message)
+      return
+    }
+
+    alert("Conta criada com sucesso!")
+    setFormData({ nome: "", email: "", senha: "" })
+  }
+
+  // --- Registro com Google ---
+  const handleGoogleSignup = async () => {
+    const { data, error } = await signInWithGoogle()
+    if (error) {
+      alert("Erro ao registrar com Google: " + error.message)
+      return
+    }
+
+    const userId = data.user.id
+
+    // Checa se já existe na tabela administrador
+    const { data: existingAdmin } = await supabase
+      .from("administrador")
+      .select("*")
+      .eq("id_auth", userId)
+      .single()
+
+    if (!existingAdmin) {
+      await supabase.from("administrador").insert({
+        id_auth: userId,
+        nome: data.user.user_metadata.nome || "Admin Google",
+        email: data.user.email,
+      })
+    }
+
+    alert("Conta criada com Google com sucesso!")
   }
 
   return (
@@ -53,14 +102,10 @@ export default function RegisterPage() {
         <div className="register-right">
           <div className="register-form-container">
             <h2>Crie sua conta</h2>
-            <p className="register-subtitle">Utilize sua conta google para se cadastrar</p>
+            <p className="register-subtitle">Utilize sua conta Google para se cadastrar</p>
 
             <button type="button" className="btn-google" onClick={handleGoogleSignup}>
-              <img src={googleLogo} alt="Google logo"  className="google-icon"/>
-                  
-          
-                
-            
+              <img src={googleLogo} alt="Google logo" className="google-icon" />
               Google
             </button>
 
