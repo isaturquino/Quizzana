@@ -1,9 +1,9 @@
 "use client"
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Mail, Lock } from "lucide-react"
 import googleLogo from "../../assets/imgs/googlelogo.png"
-import { useAuth } from "../../hooks/useAuth" 
+import { useAuth } from "../../hooks/useAuth"
 import { signInWithGoogle } from "../../services/supabase/auth"
 
 import "./LoginPage.css"
@@ -14,7 +14,8 @@ export default function LoginPage() {
     senha: "",
   })
 
-  const { login } = useAuth() // pega login do contexto
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
@@ -32,6 +33,10 @@ export default function LoginPage() {
       alert("Erro ao fazer login: " + error.message)
     } else {
       alert("Login realizado!")
+
+      // redireciona pro dashboard
+      navigate("/admin")
+
       setFormData({ email: "", senha: "" })
     }
   }
@@ -40,7 +45,11 @@ export default function LoginPage() {
     const { error } = await signInWithGoogle()
     if (error) {
       alert("Erro ao logar com Google: " + error.message)
+      return
     }
+
+    // Google redireciona sozinho, mas você pode forçar:
+    navigate("/admin")
   }
 
   return (

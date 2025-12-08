@@ -6,7 +6,7 @@ export async function signUpWithEmail({ nome, email, senha }) {
     email,
     password: senha,
     options: {
-      data: { nome } // salva no user_metadata
+      data: { nome } 
     }
   })
   return { data, error }
