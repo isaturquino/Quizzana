@@ -6,6 +6,7 @@ import SideBar from "../../components/layout/SideBar"
 import Header from "../../components/layout/Header"
 import QuizForm from "../../components/forms/QuizForm"
 import ConfiguracoesForm from "../../components/forms/ConfiguracoesForm"
+import { useQuestions } from "../../hooks/useQuestions" 
 import "./CreateQuizPage.css"
 
 function CreateQuiz() {
@@ -29,7 +30,8 @@ function CreateQuiz() {
   const [selectedCategory, setSelectedCategory] = useState("todas")
   const [selectedQuestions, setSelectedQuestions] = useState([])
 
-  const { questions } = useQuestions()
+  // Usa o hook para buscar as questões do Supabase
+  const { questions, loading } = useQuestions()
 
   const handleQuestionToggle = (questionId) => {
     setSelectedQuestions((prev) => {
@@ -50,11 +52,16 @@ function CreateQuiz() {
     console.log("Criando quiz:", quizPayload)
   }
 
+  // Filtra questões pelo search e categoria
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === "todas" || q.category.toLowerCase() === selectedCategory.toLowerCase()
     return matchesSearch && matchesCategory
   })
+
+  if (loading) {
+    return <p>Carregando questões...</p>
+  }
 
   return (
     <div className="layout">

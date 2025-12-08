@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // ← Import adicionado
+import { useNavigate } from "react-router-dom"; 
 import "./SideBar.css";
 import quizzanalogo from "../../assets/imgs/quizzanalogo.png";
 import {
@@ -15,20 +15,19 @@ import {
 } from "lucide-react";
 
 const Sidebar = ({ activeItem = "menu", isOpen, setIsOpen }) => {
-  const navigate = useNavigate(); // ← Hook adicionado
+  const navigate = useNavigate(); // Hook
 
   const menuItems = [
     { id: "menu", label: "Menu", icon: LayoutGrid, path: "/admin" },
     { id: "meus-quizzes", label: "Meus quizzes", icon: BookOpen, path: "/admin/biblioteca" },
     { id: "banco-questoes", label: "Banco de questões", icon: Database, path: "/admin/questions" },
-    { id: "resultados", label: "Resultados", icon: BarChart3, path: "/admin/results/:salaId" },
+    { id: "resultados", label: "Resultados", icon: BarChart3, path: "/results/:salaId" },
     { id: "criar-quiz", label: "Criar Quiz", icon: Plus, isAction: true, path: "/admin/create-quiz" },
   ];
 
   const handleNavigation = (path, itemId) => {
     navigate(path);
-    // Se quiser atualizar o activeItem também:
-    // setActiveItem(itemId); // Você precisaria receber esta prop ou gerenciar o estado
+   
   };
 
   return (
