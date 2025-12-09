@@ -65,7 +65,7 @@
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.8);
+  color: black;
 }
 
 /* Logo no canto */

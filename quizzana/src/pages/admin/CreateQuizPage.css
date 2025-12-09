@@ -1,9 +1,23 @@
-.create-quiz-container {
-  padding: 80px 32px 32px 32px;
-  max-width: 1400px;
-  margin: 0 auto;
+.main-content {
+  transition: margin-left 0.3s ease;
 }
 
+.main-content.sidebar-open {
+  margin-left: 250px;
+}
+
+.main-content.sidebar-closed {
+  margin-left: 60px;
+}
+
+.create-quiz-content {
+  margin-top: 60px;
+  padding: 32px;
+  min-height: 100vh;
+  background: white;
+}
+
+/* Página de criar quiz */
 .page-header-quiz {
   display: flex;
   justify-content: space-between;
@@ -22,24 +36,6 @@
   font-size: 15px;
   color: #666;
   margin: 0;
-}
-
-.btn-create-qrcode {
-  background: linear-gradient(135deg, #ffd700 0%, #ffc700 100%);
-  color: #000;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
-}
-
-.btn-create-qrcode:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
 
 .forms-grid {
