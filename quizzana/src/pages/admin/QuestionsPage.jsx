@@ -139,16 +139,6 @@ export default function QuestionsPage() {
                   Adicionar Questão
                 </Button>
 
-                <div className="search-container">
-                  <Search className="search-icon" />
-                  <input
-                    type="text"
-                    placeholder="Buscar..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
               </div>
 
               <div className="filter-section">

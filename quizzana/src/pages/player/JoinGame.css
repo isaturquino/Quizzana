@@ -118,7 +118,7 @@
 }
 
 .join-input:focus {
-  border-color: #fdc500;
+  border-color: var(--cor-amarelo-medio);
 }
 
 .join-btn {
@@ -135,7 +135,7 @@
 }
 
 .join-btn:hover {
-  background: #fdc500;
+  background: var(--cor-amarelo-medio);
 }
 
 .join-help {
@@ -148,7 +148,7 @@
 }
 
 .join-help:hover {
-  color: #fdc500;
+  color: var(--cor-amarelo-medio);
 }
 
 /* ============================
@@ -252,6 +252,6 @@
 }
 
 .avatar-modal button:hover {
-  background: #fdc500;
+  background: var(--cor-amarelo-medio);
 }
 
