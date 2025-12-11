@@ -184,3 +184,74 @@
     padding: 40px 20px;
   }
 }
+/* ============================
+   MODAL DE AVATAR
+============================ */
+.avatar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.avatar-modal {
+  background: #fff;
+  padding: 30px 40px;
+  border-radius: 20px;
+  max-width: 700px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.avatar-modal h2 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: var(--cor-roxo-claro);
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 20px;
+}
+
+.avatar-item {
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.3s;
+}
+
+.avatar-item img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-item.selected {
+  border-color: var(--cor-roxo-claro);
+  transform: scale(1.1);
+}
+
+.avatar-modal button {
+  margin-top: 20px;
+  padding: 12px 25px;
+  background: var(--cor-roxo-claro);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.avatar-modal button:hover {
+  background: #fdc500;
+}
+
