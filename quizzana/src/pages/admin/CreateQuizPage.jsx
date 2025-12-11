@@ -7,6 +7,7 @@ import Header from "../../components/layout/Header"
 import QuizForm from "../../components/forms/QuizForm"
 import ConfiguracoesForm from "../../components/forms/ConfiguracoesForm"
 import { useQuestions } from "../../hooks/useQuestions" 
+import Button from "../../components/ui/Button"
 import "./CreateQuizPage.css"
 
 function CreateQuiz() {
@@ -30,7 +31,7 @@ function CreateQuiz() {
   const [selectedCategory, setSelectedCategory] = useState("todas")
   const [selectedQuestions, setSelectedQuestions] = useState([])
 
-  // Usa o hook para buscar as questões do Supabase
+  // Hook para buscar questões do Supabase
   const { questions, loading } = useQuestions()
 
   const handleQuestionToggle = (questionId) => {
@@ -66,16 +67,16 @@ function CreateQuiz() {
   return (
     <div className="layout">
       <SideBar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} activeItem="criar-quiz" />
-      <div className={`main-content ${isSidebarOpen ? "sidebar-open" : ""}`}>
+      <div className={`main-content ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
         <Header isSidebarOpen={isSidebarOpen} />
 
-        <div className="create-quiz-container">
+        <div className="create-quiz-content">
           <div className="page-header-quiz">
             <div>
               <h1 className="page-title-quiz">Criar Novo Quiz</h1>
               <p className="page-subtitle-quiz">Configure as opções e selecione as questões</p>
             </div>
-            <button className="btn-create-qrcode">Criar sala e gerar QrCode →</button>
+            <Button className="btn-primary">Criar sala e gerar QrCode →</Button>
           </div>
 
           <div className="forms-grid">
