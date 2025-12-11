@@ -1,8 +1,11 @@
 "use client"
+
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { User, Mail, Lock } from "lucide-react"
-import googleLogo from "../../assets/imgs/googlelogo.png";
+import googleLogo from "../../assets/imgs/googlelogo.png"
+import { signUpWithEmail, signInWithGoogle } from "../../services/supabase/auth"
+
 import "./RegisterPage.css"
 
 export default function RegisterPage() {
@@ -12,11 +15,7 @@ export default function RegisterPage() {
     senha: "",
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Implementar lógica de registro com Supabase depois
-    console.log("Registro:", formData)
-  }
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({
@@ -25,9 +24,33 @@ export default function RegisterPage() {
     })
   }
 
-  const handleGoogleSignup = () => {
-    // Implementar signup com Google via Supabase depois
-    console.log("Signup com Google")
+  // --- Registro com email/senha ---
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    const { data, error } = await signUpWithEmail(formData)
+
+    if (error) {
+      alert("Erro ao registrar: " + error.message)
+      return
+    }
+
+    alert("Conta criada com sucesso! Verifique seu email.")
+
+    // Redireciona para login
+    navigate("/login")
+  }
+
+  // --- Registro/Login com Google ---
+  const handleGoogleSignup = async () => {
+    const { error } = await signInWithGoogle()
+
+    if (error) {
+      alert("Erro ao registrar com Google: " + error.message)
+      return
+    }
+
+    alert("Conta criada com Google com sucesso!")
   }
 
   return (
@@ -53,14 +76,10 @@ export default function RegisterPage() {
         <div className="register-right">
           <div className="register-form-container">
             <h2>Crie sua conta</h2>
-            <p className="register-subtitle">Utilize sua conta google para se cadastrar</p>
+            <p className="register-subtitle">Utilize sua conta Google para se cadastrar</p>
 
             <button type="button" className="btn-google" onClick={handleGoogleSignup}>
-              <img src={googleLogo} alt="Google logo"  className="google-icon"/>
-                  
-          
-                
-            
+              <img src={googleLogo} alt="Google logo" className="google-icon" />
               Google
             </button>
 

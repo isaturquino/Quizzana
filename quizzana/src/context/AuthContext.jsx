@@ -1,6 +1,8 @@
 "use client"
 
 import { createContext, useState, useEffect } from "react"
+import { supabase } from "../services/supabase/supabaseClient"
+import { signInWithEmail, signOut } from "../services/supabase/auth"
 
 export const AuthContext = createContext()
 
@@ -9,26 +11,40 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Verificar se usuário está autenticado (localStorage ou Supabase)
-    setLoading(false)
+    const getSession = async () => {
+      const { data } = await supabase.auth.getSession()
+      setUser(data.session?.user || null)
+      setLoading(false)
+    }
+
+    getSession()
+
+    // Listener de sessão (login/logout/refresh)
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null)
+      }
+    )
+
+    return () => listener.subscription.unsubscribe()
   }, [])
 
-  const login = (email, password) => {
-    // TODO: Implementar login com Supabase
-    console.log("Login:", email)
+  const login = async (email, password) => {
+    const { data, error } = await signInWithEmail(email, password)
+    if (error) return { error }
+
+    setUser(data.user)
+    return { data }
   }
 
-  const logout = () => {
-    setUser(null)
-    // TODO: Implementar logout com Supabase
+  const logout = async () => {
+    const { error } = await signOut()
+    if (!error) setUser(null)
   }
 
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      { children}
+    </AuthContext.Provider>
+  )
 }

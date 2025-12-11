@@ -1,111 +1,91 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import CategoryForm from "./CategoryForm.jsx"
+import { addCategory } from "../../services/supabase/categoria.js"
 import "./QuestionForm.css"
 
-export default function QuestionForm({ isOpen, onClose, onSave, editingQuestion }) {
+export default function QuestionForm({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  editingQuestion, 
+  categories,
+  refetchCategories 
+}) {
+  
   const [enunciado, setEnunciado] = useState("")
-  const [categoria, setCategoria] = useState("")
+  const [categoriaId, setCategoriaId] = useState(null)
+
   const [alternativas, setAlternativas] = useState([
     { text: "", isCorrect: false },
     { text: "", isCorrect: false },
+    { text: "", isCorrect: false },
+    { text: "", isCorrect: false }
   ])
-  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false)
-  const [categorias, setCategorias] = useState(["Matemática", "APS", "História", "Biologia"])
 
+  
+
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false)
+
+  // Preencher ao editar
   useEffect(() => {
     if (editingQuestion) {
       setEnunciado(editingQuestion.question)
-      setCategoria(editingQuestion.category)
+      setCategoriaId(editingQuestion.categoria_id)
+
+      // Ajustar alternativas com base na letra (A/B/C/D)
+      const letters = ["A", "B", "C", "D"]
+
       setAlternativas(
-        editingQuestion.alternatives || [
-          { text: "", isCorrect: false },
-          { text: "", isCorrect: false },
-        ],
+        editingQuestion.alternatives.map((alt, i) => ({
+          text: alt,
+          isCorrect: editingQuestion.correctAnswer === letters[i]
+        }))
       )
+
     } else {
       setEnunciado("")
-      setCategoria("")
+      setCategoriaId(null)
       setAlternativas([
         { text: "", isCorrect: false },
         { text: "", isCorrect: false },
+        { text: "", isCorrect: false },
+        { text: "", isCorrect: false }
       ])
     }
   }, [editingQuestion, isOpen])
 
-  const handleAddAlternativa = () => {
-    setAlternativas([...alternativas, { text: "", isCorrect: false }])
-  }
-
-  const handleRemoveAlternativa = (index) => {
-    if (alternativas.length > 2) {
-      setAlternativas(alternativas.filter((_, i) => i !== index))
-    }
-  }
-
-  const handleAlternativaChange = (index, field, value) => {
-    const newAlternativas = [...alternativas]
-    newAlternativas[index][field] = value
-    setAlternativas(newAlternativas)
-  }
-
+  // Salvar questão
   const handleSave = () => {
+    const correctIndex = alternativas.findIndex(a => a.isCorrect)
+
+    if (correctIndex === -1) {
+      alert("Selecione uma alternativa correta antes de salvar.")
+      return
+    }
+
+    const formatted = alternativas.map(a => a.text)
+    const letters = ["A", "B", "C", "D"]
+
     const questionData = {
       question: enunciado,
-      category: categoria,
-      alternatives: alternativas,
+      alternatives: formatted,
+      correctAnswer: letters[correctIndex],
+      categoryId: categoriaId
     }
+
     onSave(questionData)
-    handleClose()
   }
 
-  const handleClose = () => {
-    setEnunciado("")
-    setCategoria("")
-    setAlternativas([
-      { text: "", isCorrect: false },
-      { text: "", isCorrect: false },
-    ])
-    onClose()
+  // Criar categoria
+  const handleAddCategory = async (categoryName) => {
+    const newCat = await addCategory(categoryName)
+    await refetchCategories()
+    setCategoriaId(newCat.id)
+    setIsCategoryFormOpen(false)
   }
-
-  const handleAddCategory = (newCategory) => {
-    setCategorias([...categorias, newCategory])
-    setCategoria(newCategory)
-  }
-
-  const CustomSelect = ({ value, onValueChange, children, placeholder }) => {
-    const [isOpen, setIsOpen] = useState(false)
-
-    return (
-      <div className="select-container">
-        <button className="select-trigger" onClick={() => setIsOpen(!isOpen)} type="button">
-          {value || placeholder}
-          <span className="select-arrow">▼</span>
-        </button>
-        {isOpen && <div className="select-content">{children}</div>}
-      </div>
-    )
-  }
-
-  const SelectItem = ({ value, children, onSelect }) => (
-    <div
-      className="select-item"
-      onClick={() => {
-        onSelect(value)
-      }}
-    >
-      {children}
-    </div>
-  )
-
-  const CustomCheckbox = ({ checked, onCheckedChange }) => (
-    <div className={`checkbox ${checked ? "checkbox-checked" : ""}`} onClick={() => onCheckedChange(!checked)}>
-      {checked && <span className="checkbox-check">✓</span>}
-    </div>
-  )
 
   if (!isOpen) return null
 
@@ -113,94 +93,103 @@ export default function QuestionForm({ isOpen, onClose, onSave, editingQuestion 
     <>
       <div className="form-overlay">
         <div className="form-content large-form">
+
           <div className="form-header">
-            <h2 className="form-title">{editingQuestion ? "Editar" : "Adicionar"} Questão</h2>
-            <button className="form-close" onClick={handleClose} type="button">
-              ×
-            </button>
+            <h2 className="form-title">
+              {editingQuestion ? "Editar Questão" : "Adicionar Questão"}
+            </h2>
+            <button className="form-close" onClick={onClose}>×</button>
           </div>
 
           <div className="form-body">
+
             {/* Enunciado */}
             <div className="form-group">
               <label className="form-label">Enunciado</label>
               <textarea
+                className="form-textarea"
                 value={enunciado}
                 onChange={(e) => setEnunciado(e.target.value)}
-                placeholder="Digite o enunciado da questão..."
-                className="form-textarea"
               />
             </div>
 
-            {/* Categorias */}
+            {/* Categoria */}
             <div className="form-group">
-              <label className="form-label">Categorias</label>
+              <label className="form-label">Categoria</label>
+
               <div className="flex gap-2 items-center">
-                <CustomSelect value={categoria} onValueChange={setCategoria} placeholder="Selecione uma categoria">
-                  {categorias.map((cat) => (
-                    <SelectItem key={cat} value={cat} onSelect={setCategoria}>
-                      {cat}
-                    </SelectItem>
+
+                <select
+                  className="form-select"
+                  value={categoriaId || ""}
+                  onChange={(e) => setCategoriaId(Number(e.target.value))}
+                >
+                  <option value="">Selecione...</option>
+
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nome}
+                    </option>
                   ))}
-                  <div className="border-t mt-1 pt-1">
-                    <button className="add-category-btn" onClick={() => setIsCategoryFormOpen(true)} type="button">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Categoria
-                    </button>
-                  </div>
-                </CustomSelect>
+                </select>
+
+                <button
+                  type="button"
+                  className="btn-primary flex items-center gap-2"
+                  onClick={() => setIsCategoryFormOpen(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  Nova
+                </button>
+
               </div>
             </div>
 
             {/* Alternativas */}
             <div className="form-group">
               <label className="form-label">Alternativas</label>
-              <div className="alternatives-container">
-                {alternativas.map((alt, index) => (
-                  <div key={index} className="alternative-row">
+
+              {alternativas.map((alt, index) => (
+                <div key={index} className="alternative-row">
+
+                  <input
+                    className="alternative-input"
+                    value={alt.text}
+                    onChange={(e) => {
+                      const newAlt = [...alternativas]
+                      newAlt[index].text = e.target.value
+                      setAlternativas(newAlt)
+                    }}
+                  />
+
+                  <label className="checkbox-label">
                     <input
-                      value={alt.text}
-                      onChange={(e) => handleAlternativaChange(index, "text", e.target.value)}
-                      placeholder={`Alternativa ${index + 1}`}
-                      className="alternative-input"
+                      type="radio"
+                      name="correta"
+                      checked={alt.isCorrect}
+                      onChange={() => {
+                        const newAlt = alternativas.map((a, i) => ({
+                          ...a,
+                          isCorrect: i === index
+                        }))
+                        setAlternativas(newAlt)
+                      }}
                     />
-                    <div className="alternative-actions">
-                      <div className="checkbox-container">
-                        <CustomCheckbox
-                          checked={alt.isCorrect}
-                          onCheckedChange={(checked) => handleAlternativaChange(index, "isCorrect", checked)}
-                        />
-                        <span className="checkbox-label">Correta</span>
-                      </div>
-                      {alternativas.length > 2 && (
-                        <button
-                          className="remove-alternative-btn"
-                          onClick={() => handleRemoveAlternativa(index)}
-                          type="button"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <button className="add-alternative-btn" onClick={handleAddAlternativa} type="button">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Alternativa
-                </button>
-              </div>
+                    Correta
+                  </label>
+
+                </div>
+              ))}
             </div>
 
-            {/* Botões de ação */}
+            {/* Botões */}
             <div className="form-actions">
-              <button className="btn-outline" onClick={handleClose} type="button">
-                Cancelar
-              </button>
-              <button className="btn-primary" onClick={handleSave} type="button">
-                Salvar
-              </button>
+              <button className="btn-outline" onClick={onClose}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSave}>Salvar</button>
             </div>
+
           </div>
+
         </div>
       </div>
 
