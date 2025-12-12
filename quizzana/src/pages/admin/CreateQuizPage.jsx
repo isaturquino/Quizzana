@@ -88,7 +88,7 @@ function CreateQuiz() {
     } catch (error) {
       console.error("Erro ao carregar quiz:", error)
       alert("Erro ao carregar dados do quiz ou você não tem permissão!")
-      navigate("/biblioteca-quiz")
+      navigate("/biblioteca")
     } finally {
       setIsLoadingQuiz(false)
     }
@@ -133,7 +133,7 @@ function CreateQuiz() {
         
         if (result.success) {
           alert("Quiz atualizado com sucesso!")
-          navigate("/biblioteca-quiz")
+          navigate("/biblioteca")
         } else {
           alert("Erro ao atualizar quiz: " + result.error?.message)
         }
@@ -148,7 +148,7 @@ function CreateQuiz() {
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
           
-          navigate("/biblioteca-quiz")
+          navigate("/biblioteca")
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -271,7 +271,7 @@ function CreateQuiz() {
           </div>
 
           <div className="actions-footer">
-            <button className="btn-voltar" onClick={() => navigate("/biblioteca-quiz")}>
+            <button className="btn-voltar" onClick={() => navigate("/biblioteca")}>
               <ArrowLeft size={18} />
               Voltar
             </button>

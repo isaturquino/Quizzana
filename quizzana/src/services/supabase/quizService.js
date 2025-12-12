@@ -132,7 +132,7 @@ export const getQuizById = async (quizId) => {
             configuracoes_quiz (
                 tempo_limite,
                 numero_questoes,
-                pontuacao_por_questao,
+                pontuacao_por_acerto,
                 maximo_participantes
             ),
             quiz_questoes (
