@@ -1,48 +1,112 @@
-/* --- COMPONENTE REACT COMPLETO --- */
-import React from "react";
+/* --- COMPONENTE REACT AJUSTADO PARA USAR APENAS A TABELA "resultado" --- */
+import React, { useEffect, useState } from "react";
 import TopBar from "../../components/layout/TopBar";
 import "./ResultsPage.css";
 import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from "chart.js";
+import { supabase } from "../../services/supabase/supabaseClient";
+
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+} from "chart.js";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function ResultsPage() {
-  const geral = {
-    taxaAcertos: 7.3,
-    tempoMedio: 18,
-    participantes: 4
+  const salaId = 1;
+
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const [geral, setGeral] = useState({});
+  const [ranking, setRanking] = useState([]);
+  const [qErradas, setQErradas] = useState([]);
+  const [qAcertadas, setQAcertadas] = useState([]);
+  const [desempenho, setDesempenho] = useState([]);
+
+  const handleError = (label, err) => {
+    console.error(`Erro em ${label}:`, err);
+    setErrorMsg(prev => prev + ` | ${label}`);
   };
 
-  const ranking = [
-    { pos: 1, nome: "Jogador", acertos: "4/10" },
-    { pos: 2, nome: "Jogador", acertos: "3/10" },
-    { pos: 3, nome: "Jogador", acertos: "2/10" },
-    { pos: 4, nome: "Jogador", acertos: "1/10" }
-  ].sort((a, b) => b.acertos.split('/')[0] - a.acertos.split('/')[0]);
+  const loadResults = async () => {
+    setLoading(true);
+    setErrorMsg("");
 
-  const questoesMaisErradas = [
-    { texto: "What is the basic unit of life?", perc: 92 },
-    { texto: "Which organelle is responsible for...?", perc: 92 },
-    { texto: "What is the process of cell division...?", perc: 92 },
-    { texto: "Which of the following is NOT a...?", perc: 92 },
-    { texto: "What is the main function of mito...?", perc: 92 }
-  ];
+    try {
+      /* ====================== 1) RESULTADOS GERAIS ====================== */
+      try {
+        const { data, error } = await supabase
+          .from("resultado")
+          .select("*")
+          .eq("id_quiz", salaId);
 
-  const questoesMaisAcertadas = [
-    { texto: "What is the basic unit of life?", perc: 92 },
-    { texto: "Which organelle is responsible for...?", perc: 92 },
-    { texto: "What is the process of cell division...?", perc: 92 },
-    { texto: "Which of the following is NOT a...?", perc: 92 },
-    { texto: "What is the main function of mito...?", perc: 92 }
-  ];
+        if (error) throw error;
+
+        const participantes = data.length;
+        const somaAcertos = data.reduce(
+          (acc, item) => acc + Number(item.acertos || 0),
+          0
+        );
+
+        setGeral({
+          taxaAcertos: participantes
+            ? (somaAcertos / participantes).toFixed(1)
+            : 0,
+          tempoMedio: 18,
+          participantes,
+        });
+      } catch (err) {
+        handleError("resultado (geral)", err);
+      }
+
+      /* ====================== 2) RANKING ====================== */
+      try {
+        const { data, error } = await supabase
+          .from("resultado")
+          .select("id_jogador, acertos")
+          .eq("id_quiz", salaId)
+          .order("acertos", { ascending: false });
+
+        if (error) throw error;
+
+        setRanking(
+          data.map((item, index) => ({
+            pos: index + 1,
+            nome: `Jogador ${item.id_jogador}`,
+            acertos: `${item.acertos}`
+          }))
+        );
+      } catch (err) {
+        handleError("resultado (ranking)", err);
+      }
+
+      /* ====================== 3, 4 e 5 NÃO EXISTEM NA TABELA ====================== */
+      setQErradas([]);
+      setQAcertadas([]);
+      setDesempenho([]);
+
+    } catch (err) {
+      handleError("loadResults geral", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadResults();
+  }, []);
 
   const desempenhoPorQuestao = {
-    labels: ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "Q9", "Q10"],
+    labels: desempenho.map(d => `Q${d.questao}`),
     datasets: [
       {
         label: "Desempenho",
-        data: [20, 60, 15, 95, 40, 25, 90, 65, 55, 60],
+        data: desempenho.map(d => d.porcentagem),
         backgroundColor: "rgba(153,102,255,0.7)"
       }
     ]
@@ -67,11 +131,18 @@ export default function ResultsPage() {
 
       <h2 className="res-page-title">Resultado do Quiz</h2>
 
+      {loading && <p>Carregando dados...</p>}
+      {!loading && errorMsg && (
+        <p style={{ color: "red" }}>
+          Problemas ao buscar dados: {errorMsg}. Veja o console.
+        </p>
+      )}
+
       <div className="res-top-stats">
         <div className="res-card">
           <p className="res-card-label">Taxa de Acertos Geral</p>
           <p className="res-card-value">{geral.taxaAcertos}</p>
-          <p className="res-card-sub">7.3 acertos em média</p>
+          <p className="res-card-sub">{geral.taxaAcertos} acertos em média</p>
         </div>
 
         <div className="res-card">
@@ -87,77 +158,49 @@ export default function ResultsPage() {
         </div>
       </div>
 
-      <div className="res-main-grid">
+      {/* RANKING */}
+      <div className="res-panel">
+        <p className="res-panel-title">Ranking Final</p>
 
-        <div className="res-panel">
-          <p className="res-panel-title">Ranking Final</p>
-
-          <table className="res-table">
-            <thead>
-              <tr>
-                <th>Posição</th>
-                <th>Nome</th>
-                <th style={{ textAlign: "right" }}>Acertos</th>
+        <table className="res-table">
+          <thead>
+            <tr>
+              <th>Posição</th>
+              <th>Nome</th>
+              <th style={{ textAlign: "right" }}>Acertos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranking.map(item => (
+              <tr key={item.pos}>
+                <td>{item.pos}</td>
+                <td>{item.nome}</td>
+                <td style={{ textAlign: "right" }}>{item.acertos}</td>
               </tr>
-            </thead>
-            <tbody>
-              {ranking.map(item => (
-                <tr key={item.pos}>
-                  <td>{item.pos}</td>
-                  <td>{item.nome}</td>
-                  <td style={{ textAlign: "right" }}>{item.acertos}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-        {/* QUESTÕES MAIS ERRADAS */}
-        <div className="res-panel">
-          <p className="res-panel-title" style={{ color: "#c30000" }}>
-            Questões Mais Erradas
-          </p>
+      {/* BLOCOS VAZIOS */}
+      <div className="res-panel">
+        <p className="res-panel-title" style={{ color: "#c30000" }}>
+          Questões Mais Erradas
+        </p>
+        <p style={{ opacity: 0.5 }}>Nenhum dado disponível</p>
+      </div>
 
-          {questoesMaisErradas.map((q, i) => (
-            <div className="res-q-item" key={i}>
-              <div className="res-q-row">
-                <span>{q.texto}</span>
-                <span>{q.perc}%</span>
-              </div>
-              <div className="res-bar-container">
-                <div className="res-bar-fill-wrong" style={{ width: q.perc + "%" }}></div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* QUESTÕES MAIS ACERTADAS */}
-        <div className="res-panel">
-          <p className="res-panel-title" style={{ color: "#067a2f" }}>
-            Questões Mais Acertadas
-          </p>
-
-          {questoesMaisAcertadas.map((q, i) => (
-            <div className="res-q-item" key={i}>
-              <div className="res-q-row">
-                <span>{q.texto}</span>
-                <span>{q.perc}%</span>
-              </div>
-              <div className="res-bar-container">
-                <div className="res-bar-fill-correct" style={{ width: q.perc + "%" }}></div>
-              </div>
-            </div>
-          ))}
-        </div>
-
+      <div className="res-panel">
+        <p className="res-panel-title" style={{ color: "#067a2f" }}>
+          Questões Mais Acertadas
+        </p>
+        <p style={{ opacity: 0.5 }}>Nenhum dado disponível</p>
       </div>
 
       <div className="res-chart">
         <div className="res-chart-wrapper">
           <p className="res-chart-title">Desempenho por Questão</p>
-          <div style={{ height: 260 }}>
-            <Bar data={desempenhoPorQuestao} options={options} />
-          </div>
+          <p style={{ opacity: 0.5 }}>Nenhum dado disponível</p>
         </div>
       </div>
 

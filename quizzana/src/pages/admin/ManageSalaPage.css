@@ -249,6 +249,13 @@
 .btn-next-question:hover {
   background: #7b3aa1;
 }
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
 
 /* ============================
    RESPONSIVO
