@@ -100,7 +100,7 @@ export const getQuizzes = async (page = 1, limit = 10, userId) => {
         `,
             { count: "exact" }
         )
-        .eq("id_users", userId) // FILTRA APENAS QUIZZES DO USUÁRIO
+        .eq("id_user", userId) // FILTRA APENAS QUIZZES DO USUÁRIO
         .order("created_at", { ascending: false })
         .range(from, to);
 
