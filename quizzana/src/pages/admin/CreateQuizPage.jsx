@@ -7,6 +7,7 @@ import SideBar from "../../components/layout/SideBar"
 import Header from "../../components/layout/Header"
 import QuizForm from "../../components/forms/QuizForm"
 import ConfiguracoesForm from "../../components/forms/ConfiguracoesForm"
+import QuizCreatedModal from "../../components/ui/QuizCreatedModal" 
 import { useQuestions } from "../../hooks/useQuestions" 
 import { useCategories } from "../../hooks/useCategories"
 import { createQuiz, getQuizById, updateQuiz } from "../../services/supabase/quizService"
@@ -22,6 +23,14 @@ function CreateQuiz() {
   const [isCreating, setIsCreating] = useState(false)
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
   const isEditing = !!id // Se tem ID, está editando
+
+  // ⬅️ NOVO ESTADO: Controla a visibilidade do modal (showModal)
+  const [showModal, setShowModal] = useState(false)
+  // ⬅️ NOVO ESTADO: Guarda os dados do quiz recém-criado para o modal
+  const [createdQuizData, setCreatedQuizData] = useState({
+    quizId: null,
+    quizName: ""
+  })
 
   const [quizData, setQuizData] = useState({
     nome: "",
@@ -47,19 +56,19 @@ function CreateQuiz() {
   // Hook para buscar categorias do Supabase
   const { categories, loading: loadingCategories } = useCategories()
 
-  // Carregar dados do quiz se estiver editando
+  // CORREÇÃO: Carregar dados do quiz se estiver editando
   useEffect(() => {
-    if (id) {
+    // Só carrega se tiver ID E o usuário estiver carregado
+    if (id && user) { 
       loadQuizData(id)
     }
-  }, [id])
+  }, [id, user]) // Dependência 'user' para garantir o timing
 
   const loadQuizData = async (quizId) => {
-    if (!user) return;
-
     setIsLoadingQuiz(true)
     try {
-      const quiz = await getQuizById(quizId, user.id) // PASSA O USER ID
+      // Use getQuizById(quizId) se o RLS estiver desativado no quizService.js
+      const quiz = await getQuizById(quizId) 
       
       // Preencher dados do quiz
       setQuizData({
@@ -87,8 +96,8 @@ function CreateQuiz() {
       }
     } catch (error) {
       console.error("Erro ao carregar quiz:", error)
-      alert("Erro ao carregar dados do quiz ou você não tem permissão!")
-      navigate("/biblioteca")
+      alert("Erro ao carregar dados do quiz ou ID inválido!")
+      navigate("/admin/biblioteca")
     } finally {
       setIsLoadingQuiz(false)
     }
@@ -103,6 +112,13 @@ function CreateQuiz() {
       }
     })
   }
+  
+  // ⬅️ NOVA FUNÇÃO: Fecha o modal E navega para a biblioteca
+  const handleCloseModal = () => {
+    setShowModal(false)
+    navigate("/admin/biblioteca")
+  }
+
 
   const handleCreateQuiz = async () => {
     // Validar usuário logado
@@ -133,7 +149,8 @@ function CreateQuiz() {
         
         if (result.success) {
           alert("Quiz atualizado com sucesso!")
-          navigate("/biblioteca")
+          // No modo edição, navega direto
+          navigate("/admin/biblioteca") 
         } else {
           alert("Erro ao atualizar quiz: " + result.error?.message)
         }
@@ -142,13 +159,17 @@ function CreateQuiz() {
         result = await createQuiz(quizData, configuracoes, selectedQuestions, user.id)
 
         if (result.success) {
-          alert(`Quiz criado com sucesso! ID: ${result.quizId}`)
-          
+          // ⬅️ LÓGICA DO DIFF: Abrir modal com informações do quiz criado
+          setCreatedQuizData({
+            quizId: result.quizId,
+            quizName: quizData.nome
+          })
+          setShowModal(true) // Abre o modal
+
           // Limpar formulário
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
-          
-          navigate("/biblioteca")
+          // ⚠️ A navegação foi removida e acontecerá no handleCloseModal
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -196,6 +217,8 @@ function CreateQuiz() {
               </h1>
               <p className="page-subtitle-quiz">Configure as opções e selecione as questões</p>
             </div>
+            
+            {/* Mantemos apenas o botão de Salvar/Criar aqui para simplificar */}
             <Button 
               className="btn-primary" 
               onClick={handleCreateQuiz}
@@ -271,7 +294,7 @@ function CreateQuiz() {
           </div>
 
           <div className="actions-footer">
-            <button className="btn-voltar" onClick={() => navigate("/biblioteca")}>
+            <button className="btn-voltar" onClick={() => navigate("/admin/biblioteca")}>
               <ArrowLeft size={18} />
               Voltar
             </button>
@@ -285,6 +308,14 @@ function CreateQuiz() {
           </div>
         </div>
       </div>
+      
+      {/* Modal de Quiz Criado (renderizado conforme o diff) */}
+      <QuizCreatedModal 
+        isOpen={showModal}
+        onClose={handleCloseModal} // ⬅️ Funcao que fecha o modal E navega
+        quizId={createdQuizData.quizId}
+        quizName={createdQuizData.quizName}
+      />
     </div>
   )
 }
