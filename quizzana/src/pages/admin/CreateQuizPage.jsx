@@ -1,33 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Search, ArrowLeft } from "lucide-react"
 import SideBar from "../../components/layout/SideBar"
 import Header from "../../components/layout/Header"
 import QuizForm from "../../components/forms/QuizForm"
 import ConfiguracoesForm from "../../components/forms/ConfiguracoesForm"
-import QuizCreatedModal from "../../components/ui/QuizCreatedModal"
 import { useQuestions } from "../../hooks/useQuestions" 
 import { useCategories } from "../../hooks/useCategories"
 import { createQuiz, getQuizById, updateQuiz } from "../../services/supabase/quizService"
+import { AuthContext } from "../../context/AuthContext"
 import Button from "../../components/ui/Button"
 import "./CreateQuizPage.css"
 
 function CreateQuiz() {
   const { id } = useParams() // Pega o ID da URL se existir
   const navigate = useNavigate()
+  const { user } = useContext(AuthContext) // PEGA O USUÁRIO LOGADO
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
   const isEditing = !!id // Se tem ID, está editando
-
-  // Estado para controlar o modal
-  const [showModal, setShowModal] = useState(false)
-  const [createdQuizData, setCreatedQuizData] = useState({
-    quizId: null,
-    quizName: ""
-  })
 
   const [quizData, setQuizData] = useState({
     nome: "",
@@ -61,9 +55,11 @@ function CreateQuiz() {
   }, [id])
 
   const loadQuizData = async (quizId) => {
+    if (!user) return;
+
     setIsLoadingQuiz(true)
     try {
-      const quiz = await getQuizById(quizId)
+      const quiz = await getQuizById(quizId, user.id) // PASSA O USER ID
       
       // Preencher dados do quiz
       setQuizData({
@@ -91,7 +87,8 @@ function CreateQuiz() {
       }
     } catch (error) {
       console.error("Erro ao carregar quiz:", error)
-      alert("Erro ao carregar dados do quiz!")
+      alert("Erro ao carregar dados do quiz ou você não tem permissão!")
+      navigate("/biblioteca-quiz")
     } finally {
       setIsLoadingQuiz(false)
     }
@@ -108,6 +105,12 @@ function CreateQuiz() {
   }
 
   const handleCreateQuiz = async () => {
+    // Validar usuário logado
+    if (!user) {
+      alert("Você precisa estar logado para criar/editar quizzes!");
+      return;
+    }
+
     // Validações
     if (!quizData.nome.trim()) {
       alert("Por favor, preencha o nome do quiz!")
@@ -130,25 +133,22 @@ function CreateQuiz() {
         
         if (result.success) {
           alert("Quiz atualizado com sucesso!")
-          navigate("/admin/biblioteca")
+          navigate("/biblioteca-quiz")
         } else {
           alert("Erro ao atualizar quiz: " + result.error?.message)
         }
       } else {
-        // Criar novo quiz
-        result = await createQuiz(quizData, configuracoes, selectedQuestions)
+        // Criar novo quiz - PASSA O USER ID
+        result = await createQuiz(quizData, configuracoes, selectedQuestions, user.id)
 
         if (result.success) {
-          // Abrir modal com informações do quiz criado
-          setCreatedQuizData({
-            quizId: result.quizId,
-            quizName: quizData.nome
-          })
-          setShowModal(true)
+          alert(`Quiz criado com sucesso! ID: ${result.quizId}`)
           
           // Limpar formulário
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
+          
+          navigate("/biblioteca-quiz")
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -159,11 +159,6 @@ function CreateQuiz() {
     } finally {
       setIsCreating(false)
     }
-  }
-
-  const handleCloseModal = () => {
-    setShowModal(false)
-    navigate("/admin/biblioteca")
   }
 
   // Filtra questões pelo search e categoria
@@ -276,7 +271,7 @@ function CreateQuiz() {
           </div>
 
           <div className="actions-footer">
-            <button className="btn-voltar" onClick={() => navigate("/admin/biblioteca")}>
+            <button className="btn-voltar" onClick={() => navigate("/biblioteca-quiz")}>
               <ArrowLeft size={18} />
               Voltar
             </button>
@@ -290,14 +285,6 @@ function CreateQuiz() {
           </div>
         </div>
       </div>
-
-      {/* Modal de Quiz Criado */}
-      <QuizCreatedModal 
-        isOpen={showModal}
-        onClose={handleCloseModal}
-        quizId={createdQuizData.quizId}
-        quizName={createdQuizData.quizName}
-      />
     </div>
   )
 }
