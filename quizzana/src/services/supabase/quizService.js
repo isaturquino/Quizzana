@@ -29,7 +29,7 @@ export const createQuiz = async (quizData, configuracoes, questoesSelecionadas, 
 
         const configId = configCreated.id;
 
-        // 2. DEPOIS - Inserir o Quiz na tabela 'quiz' com o id_configuracoes E id_users
+        // 2. DEPOIS - Inserir o Quiz na tabela 'quiz' com o id_configuracoes E id_user
         const { data: quizCreated, error: quizError } = await supabase
             .from("quiz")
             .insert([
@@ -38,7 +38,7 @@ export const createQuiz = async (quizData, configuracoes, questoesSelecionadas, 
                     descricao: quizData.descricao,
                     ativo: true,
                     id_configuracoes: configId, // Relacionamento com configurações
-                    id_users: userId, // ADICIONA O ID DO USUÁRIO
+                    id_user: userId, // ADICIONA O ID DO USUÁRIO
                 },
             ])
             .select()
@@ -305,7 +305,7 @@ export async function loadUserDashboardData(userId) {
         const { data: quizzesData, count: totalQuizzes, error: quizError } = await supabase
             .from('quiz')
             .select('id, ativo', { count: 'exact' })
-            .eq('id_users', userId); // FILTRO PRINCIPAL
+            .eq('id_user', userId); // FILTRO PRINCIPAL
 
         if (quizError) throw quizError;
 
@@ -331,7 +331,7 @@ export async function loadUserDashboardData(userId) {
                     maximo_participantes
                 )
             `)
-            .eq('id_users', userId) // FILTRO
+            .eq('id_user', userId) // FILTRO
             .eq('ativo', true)
             .order('created_at', { ascending: false })
             .limit(3);
@@ -350,7 +350,7 @@ export async function loadUserDashboardData(userId) {
                     numero_questoes
                 )
             `)
-            .eq('id_users', userId) // FILTRO
+            .eq('id_user', userId) // FILTRO
             .order('created_at', { ascending: false })
             .limit(5);
 
