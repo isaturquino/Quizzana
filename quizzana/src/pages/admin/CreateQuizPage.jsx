@@ -7,6 +7,7 @@ import SideBar from "../../components/layout/SideBar"
 import Header from "../../components/layout/Header"
 import QuizForm from "../../components/forms/QuizForm"
 import ConfiguracoesForm from "../../components/forms/ConfiguracoesForm"
+import QuizCreatedModal from "../../components/ui/QuizCreatedModal"
 import { useQuestions } from "../../hooks/useQuestions" 
 import { useCategories } from "../../hooks/useCategories"
 import { createQuiz, getQuizById, updateQuiz } from "../../services/supabase/quizService"
@@ -20,6 +21,13 @@ function CreateQuiz() {
   const [isCreating, setIsCreating] = useState(false)
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
   const isEditing = !!id // Se tem ID, está editando
+
+  // Estado para controlar o modal
+  const [showModal, setShowModal] = useState(false)
+  const [createdQuizData, setCreatedQuizData] = useState({
+    quizId: null,
+    quizName: ""
+  })
 
   const [quizData, setQuizData] = useState({
     nome: "",
@@ -131,13 +139,16 @@ function CreateQuiz() {
         result = await createQuiz(quizData, configuracoes, selectedQuestions)
 
         if (result.success) {
-          alert(`Quiz criado com sucesso! ID: ${result.quizId}`)
+          // Abrir modal com informações do quiz criado
+          setCreatedQuizData({
+            quizId: result.quizId,
+            quizName: quizData.nome
+          })
+          setShowModal(true)
           
           // Limpar formulário
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
-          
-          navigate("/admin/biblioteca")
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -148,6 +159,11 @@ function CreateQuiz() {
     } finally {
       setIsCreating(false)
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    navigate("/admin/biblioteca")
   }
 
   // Filtra questões pelo search e categoria
@@ -274,6 +290,14 @@ function CreateQuiz() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Quiz Criado */}
+      <QuizCreatedModal 
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        quizId={createdQuizData.quizId}
+        quizName={createdQuizData.quizName}
+      />
     </div>
   )
 }
