@@ -1,48 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SideBar from '../../components/layout/SideBar';
 import Header from '../../components/layout/Header';
 import Button from '../../components/ui/Button';
 import { Users, BookOpen, FolderOpen, Star } from 'lucide-react';
+import { supabase } from '../../services/supabase/supabaseClient';
 import './DashboardPage.css';
-import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
+  
+  // Estados para dados do dashboard
+  const [stats, setStats] = useState({
+    totalQuizzes: 0,
+    totalQuestoes: 0,
+    quizzesAtivos: 0
+  });
+  
+  const [activeQuizzes, setActiveQuizzes] = useState([]);
+  const [recentQuizzes, setRecentQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dados mockados para exemplo
-  const activeQuizzes = [
-    { id: 1, title: 'Quiz de História 2', participants: 32 },
-    { id: 2, title: 'Quiz DW2', participants: 28 },
-    { id: 3, title: 'Quiz Gincana 2025', participants: 45 },
-  ];
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-  const recentQuizzes = [
-    { id: 1, title: 'Biologia Celular', category: 'Biologia', questions: 10 },
-    { id: 2, title: 'Romantismo', category: 'Português', questions: 13 },
-    { id: 3, title: 'Kanban', category: 'APS', questions: 15 },
-  ];
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // 1. Buscar estatísticas gerais
+      const [quizzesResult, questoesResult] = await Promise.all([
+        supabase.from('quiz').select('id, ativo', { count: 'exact' }),
+        supabase.from('questoes').select('id', { count: 'exact' })
+      ]);
+
+      const totalQuizzes = quizzesResult.count || 0;
+      const totalQuestoes = questoesResult.count || 0;
+      const quizzesAtivos = quizzesResult.data?.filter(q => q.ativo).length || 0;
+
+      // 2. Buscar quizzes ativos
+      const { data: activeData } = await supabase
+        .from('quiz')
+        .select(`
+          id,
+          titulo,
+          configuracoes_quiz (
+            maximo_participantes
+          )
+        `)
+        .eq('ativo', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      // 3. Buscar últimos quizzes criados
+      const { data: recentData } = await supabase
+        .from('quiz')
+        .select(`
+          id,
+          titulo,
+          configuracoes_quiz (
+            numero_questoes
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setStats({
+        totalQuizzes,
+        totalQuestoes,
+        quizzesAtivos
+      });
+
+      setActiveQuizzes(activeData || []);
+      setRecentQuizzes(recentData || []);
+
+    } catch (error) {
+      console.error('Erro ao carregar dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <SideBar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <Header isSidebarOpen={isSidebarOpen} />
+        <div className={`dashboard-container ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
+          <p style={{ textAlign: 'center', padding: '3rem' }}>Carregando dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <SideBar 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        activeItem="dashboard"
       />
 
-      <Header 
-        isSidebarOpen={isSidebarOpen}
-      />
+      <Header isSidebarOpen={isSidebarOpen} />
 
       <div className={`dashboard-container ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
         {/* Header com título e botão */}
         <div className="dashboard-header">
           <div className="dashboard-title">
             <h1>Dashboard</h1>
-            <p>Bem-vindo de volta Usuário! Veja mais informações de seus quiz.</p>
+            <p>Bem-vindo de volta! Veja as informações dos seus quizzes.</p>
           </div>
-          <Button variant="primary" icon="plus" onClick={() => navigate('/admin/create-quiz')}>
-            Criar Novo Quiz
+          <Button className="btn-primary" onClick={() => navigate('/admin/create-quiz')}>
+            + Criar Novo Quiz
           </Button>
         </div>
 
@@ -51,7 +122,7 @@ export default function Dashboard() {
           <div className="stat-card">
             <div className="stat-info">
               <h3>Total de Quizzes</h3>
-              <p>12</p>
+              <p>{stats.totalQuizzes}</p>
             </div>
             <div className="stat-icon">
               <BookOpen size={24} />
@@ -61,7 +132,7 @@ export default function Dashboard() {
           <div className="stat-card">
             <div className="stat-info">
               <h3>Questões no Banco</h3>
-              <p>126</p>
+              <p>{stats.totalQuestoes}</p>
             </div>
             <div className="stat-icon">
               <FolderOpen size={24} />
@@ -70,8 +141,8 @@ export default function Dashboard() {
 
           <div className="stat-card">
             <div className="stat-info">
-              <h3>Quizes ativos</h3>
-              <p>4</p>
+              <h3>Quizzes Ativos</h3>
+              <p>{stats.quizzesAtivos}</p>
             </div>
             <div className="stat-icon">
               <Star size={24} />
@@ -94,14 +165,14 @@ export default function Dashboard() {
                       <Star size={20} />
                     </div>
                     <div className="quiz-details">
-                      <h3>{quiz.title}</h3>
+                      <h3>{quiz.titulo}</h3>
                       <p>
                         <Users size={14} />
-                        {quiz.participants} participantes
+                        {quiz.configuracoes_quiz?.[0]?.maximo_participantes || 0} participantes
                       </p>
                     </div>
                   </div>
-                  <Button variant="secondary">Ver</Button>
+                  <Button className="btn-secondary">Ver</Button>
                 </div>
               ))}
             </div>
@@ -117,10 +188,12 @@ export default function Dashboard() {
                 <div key={quiz.id} className="recent-quiz-item">
                   <div className="quiz-number">{index + 1}</div>
                   <div className="recent-quiz-info">
-                    <h3>{quiz.title}</h3>
-                    <p>{quiz.category}</p>
+                    <h3>{quiz.titulo}</h3>
+                    <p>Quiz Personalizado</p>
                   </div>
-                  <div className="quiz-questions">{quiz.questions} Questões</div>
+                  <div className="quiz-questions">
+                    {quiz.configuracoes_quiz?.[0]?.numero_questoes || 0} Questões
+                  </div>
                 </div>
               ))}
             </div>
@@ -133,14 +206,14 @@ export default function Dashboard() {
           <p className="subtitle">Crie rápido seus quizzes e questões.</p>
           
           <div className="actions-grid">
-            <Button variant="primary" icon="plus" onClick={() => navigate('/admin/create-quiz')}>
-              Criar Quiz
+            <Button className="btn-primary" onClick={() => navigate('/admin/create-quiz')}>
+              + Criar Quiz
             </Button>
-            <Button variant="primary" icon="plus" onClick={() => navigate('/admin/questions')}>
-              Adicionar Questão
+            <Button className="btn-primary" onClick={() => navigate('/admin/questions')}>
+              + Adicionar Questão
             </Button>
-            <Button variant="primary" icon="plus" onClick={() => navigate('/admin/biblioteca')}>
-              Ver Bando de Questões
+            <Button className="btn-primary" onClick={() => navigate('/admin/biblioteca')}>
+              📚 Ver Banco de Questões
             </Button>
           </div>
         </div>

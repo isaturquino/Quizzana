@@ -1,68 +1,74 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SideBar from './../../components/layout/SideBar';
 import Header from '../../components/layout/Header';
+import Button from '../../components/ui/Button';
 import { Search, Filter, ChevronLeft, ChevronRight, Clock, FileText, Users, MoreVertical } from 'lucide-react';
+import { useQuizzes } from '../../hooks/useQuiz';
+import { deleteQuiz, toggleQuizStatus } from '../../services/supabase/quizService';
 import './BibliotecaQuizPage.css';
 
 export default function BibliotecaQuizPage() {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('Todas Categorias');
 
-  // Dados de exemplo dos quizzes
-  const quizzes = [
-    {
-      id: 1,
-      title: 'Quiz Gincana 2025',
-      description: 'Conhecimentos sobre a última gincana',
-      status: 'ativo',
-      questions: 15,
-      duration: 20,
-      participants: 45,
-      icon: '📚'
-    },
-    {
-      id: 2,
-      title: 'Quiz DW2',
-      description: 'Conceitos básicos sobre DW2',
-      status: 'ativo',
-      questions: 12,
-      duration: 18,
-      participants: 28,
-      icon: '📚'
-    },
-    {
-      id: 3,
-      title: 'Quiz de História 2',
-      description: 'O que mais caiem no Enem',
-      status: 'finalizado',
-      questions: 18,
-      duration: 22,
-      participants: 32,
-      icon: '📚'
+  // Buscar quizzes do Supabase
+  const { quizzes, loading, totalPages, total, refetch } = useQuizzes(currentPage, 10);
+
+  const handleDeleteQuiz = async (quizId) => {
+    if (window.confirm('Tem certeza que deseja deletar este quiz?')) {
+      const result = await deleteQuiz(quizId);
+      if (result.success) {
+        alert('Quiz deletado com sucesso!');
+        refetch();
+      } else {
+        alert('Erro ao deletar quiz!');
+      }
     }
-  ];
+  };
 
-  const totalPages = 48;
+  const handleToggleStatus = async (quizId, currentStatus) => {
+    try {
+      await toggleQuizStatus(quizId, !currentStatus);
+      alert(`Quiz ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
+      refetch();
+    } catch (error) {
+      alert('Erro ao alterar status do quiz!');
+    }
+  };
 
+  const handleEditQuiz = (quizId) => {
+    navigate(`/admin/create-quiz/${quizId}`);
+  };
+
+  const handleCreateQuiz = () => {
+    navigate('/admin/create-quiz');
+  };
+
+  // Filtrar quizzes
   const filteredQuizzes = quizzes.filter(quiz => {
-    const matchesTab = activeTab === 'todos' || quiz.status === activeTab;
-    const matchesSearch = quiz.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         quiz.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'todos' || 
+                       (activeTab === 'ativo' && quiz.ativo) ||
+                       (activeTab === 'finalizado' && !quiz.ativo);
+    
+    const matchesSearch = quiz.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          quiz.descricao?.toLowerCase().includes(searchTerm.toLowerCase());
+    
     return matchesTab && matchesSearch;
   });
 
   const renderPageNumbers = () => {
     const pages = [];
     
-    // Botão Anterior
     if (currentPage > 1) {
       pages.push(
         <button 
           key="prev" 
-          className="pagination-btn"
+          className="biblioteca-pagination-btn"
           onClick={() => setCurrentPage(currentPage - 1)}
         >
           <ChevronLeft size={16} /> Anterior
@@ -70,12 +76,11 @@ export default function BibliotecaQuizPage() {
       );
     }
 
-    // Botão Próximo
     if (currentPage < totalPages) {
       pages.push(
         <button 
           key="next" 
-          className="pagination-btn"
+          className="biblioteca-pagination-btn"
           onClick={() => setCurrentPage(currentPage + 1)}
         >
           Próximo <ChevronRight size={16} />
@@ -86,6 +91,20 @@ export default function BibliotecaQuizPage() {
     return pages;
   };
 
+  if (loading) {
+    return (
+      <div className="layout">
+        <SideBar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+          <Header isSidebarOpen={isSidebarOpen} />
+          <div className="biblioteca-container" style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Carregando quizzes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="layout">
       <SideBar 
@@ -95,16 +114,18 @@ export default function BibliotecaQuizPage() {
       <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
         <Header isSidebarOpen={isSidebarOpen} />
         
-        <div className="biblioteca-quiz-container">
+        <div className="biblioteca-container">
           {/* Seção de cabeçalho */}
-          <div className="page-header">
-            <div className="header-content2">
-              <h1 className="page-title">Meus Quizzes</h1>
-              <p className="page-subtitle">Crie, gerencie e analise seus quizzes</p>
+          <div className="biblioteca-page-header">
+            <div className="biblioteca-header-content">
+              <h1 className="biblioteca-page-title">Meus Quizzes</h1>
+              <p className="biblioteca-page-subtitle">
+                Crie, gerencie e analise seus quizzes ({total} quizzes)
+              </p>
             </div>
-            <button className="btn-criar-quiz">
+            <Button className="btn-primary" onClick={handleCreateQuiz}>
               + Criar Novo Quiz
-            </button>
+            </Button>
           </div>
 
           {/* Biblioteca de Quizzes */}
@@ -117,30 +138,30 @@ export default function BibliotecaQuizPage() {
             </div>
 
             {/* Filtros e Tabs */}
-            <div className="filters-section">
-              <div className="tabs-container">
+            <div className="biblioteca-filters-section">
+              <div className="biblioteca-tabs-container">
                 <button 
-                  className={`tab ${activeTab === 'todos' ? 'active' : ''}`}
+                  className={`biblioteca-tab ${activeTab === 'todos' ? 'active' : ''}`}
                   onClick={() => setActiveTab('todos')}
                 >
                   Todos quizzes
                 </button>
                 <button 
-                  className={`tab ${activeTab === 'ativo' ? 'active' : ''}`}
+                  className={`biblioteca-tab ${activeTab === 'ativo' ? 'active' : ''}`}
                   onClick={() => setActiveTab('ativo')}
                 >
                   Ativos
                 </button>
                 <button 
-                  className={`tab ${activeTab === 'finalizado' ? 'active' : ''}`}
+                  className={`biblioteca-tab ${activeTab === 'finalizado' ? 'active' : ''}`}
                   onClick={() => setActiveTab('finalizado')}
                 >
                   Finalizados
                 </button>
               </div>
 
-              <div className="search-filter-container">
-                <div className="search-box">
+              <div className="biblioteca-search-filter-container">
+                <div className="biblioteca-search-box">
                   <Search size={18} />
                   <input 
                     type="text" 
@@ -149,73 +170,91 @@ export default function BibliotecaQuizPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-
-                <div className="category-dropdown">
-                  <Filter size={18} />
-                  <select 
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                  >
-                    <option>Todas Categorias</option>
-                    <option>Educação</option>
-                    <option>Entretenimento</option>
-                    <option>Corporativo</option>
-                  </select>
-                </div>
               </div>
             </div>
 
             {/* Paginação superior */}
-            <div className="pagination-container top">
+            <div className="biblioteca-pagination-container top">
               {renderPageNumbers()}
             </div>
 
             {/* Lista de Quizzes */}
-            <div className="quizzes-list">
-              {filteredQuizzes.map(quiz => (
-                <div key={quiz.id} className="quiz-card">
-                  <div className="quiz-icon">
-                    📚
-                  </div>
-                  
-                  <div className="quiz-content">
-                    <div className="quiz-header-card">
-                      <h3 className="quiz-title">{quiz.title}</h3>
-                      <span className={`status-badge ${quiz.status}`}>
-                        {quiz.status === 'ativo' ? 'Ativo' : 'Finalizado'}
-                      </span>
-                    </div>
-                    
-                    <p className="quiz-description">{quiz.description}</p>
-                    
-                    <div className="quiz-meta">
-                      <span className="meta-item">
-                        <FileText size={14} />
-                        {quiz.questions} questões
-                      </span>
-                      <span className="meta-item">
-                        <Clock size={14} />
-                        {quiz.duration} min
-                      </span>
-                      <span className="meta-item">
-                        <Users size={14} />
-                        {quiz.participants} participantes
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="quiz-actions">
-                    <button className="btn-view">View</button>
-                    <button className="btn-more">
-                      <MoreVertical size={18} />
-                    </button>
-                  </div>
+            <div className="biblioteca-quizzes-list">
+              {filteredQuizzes.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
+                  <p>Nenhum quiz encontrado.</p>
+                  <Button onClick={handleCreateQuiz} className="btn-primary" style={{ marginTop: '1rem' }}>
+                    Criar Primeiro Quiz
+                  </Button>
                 </div>
-              ))}
+              ) : (
+                filteredQuizzes.map(quiz => (
+                  <div key={quiz.id} className="biblioteca-quiz-card">
+                    <div className="biblioteca-quiz-icon">
+                      📚
+                    </div>
+                    
+                    <div className="biblioteca-quiz-content">
+                      <div className="biblioteca-quiz-header-card">
+                        <h3 className="biblioteca-quiz-title">{quiz.titulo}</h3>
+                        <span className={`biblioteca-status-badge ${quiz.ativo ? 'ativo' : 'finalizado'}`}>
+                          {quiz.ativo ? 'Ativo' : 'Finalizado'}
+                        </span>
+                      </div>
+                      
+                      <p className="biblioteca-quiz-description">
+                        {quiz.descricao || 'Sem descrição'}
+                      </p>
+                      
+                      <div className="biblioteca-quiz-meta">
+                        <span className="biblioteca-meta-item">
+                          <FileText size={14} />
+                          {quiz.configuracoes_quiz?.[0]?.numero_questoes || 0} questões
+                        </span>
+                        <span className="biblioteca-meta-item">
+                          <Clock size={14} />
+                          {quiz.configuracoes_quiz?.[0]?.tempo_limite || 0} min
+                        </span>
+                        <span className="biblioteca-meta-item">
+                          <Users size={14} />
+                          {quiz.configuracoes_quiz?.[0]?.maximo_participantes || 0} participantes
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="biblioteca-quiz-actions">
+                      <button 
+                        className="biblioteca-btn-view"
+                        onClick={() => handleEditQuiz(quiz.id)}
+                      >
+                        Editar
+                      </button>
+                      
+                      <div className="biblioteca-dropdown">
+                        <button className="biblioteca-btn-more">
+                          <MoreVertical size={18} />
+                        </button>
+                        
+                        <div className="biblioteca-dropdown-content">
+                          <button onClick={() => handleToggleStatus(quiz.id, quiz.ativo)}>
+                            {quiz.ativo ? 'Desativar' : 'Ativar'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteQuiz(quiz.id)}
+                            style={{ color: '#ef4444' }}
+                          >
+                            Deletar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Paginação inferior */}
-            <div className="pagination-container bottom">
+            <div className="biblioteca-pagination-container bottom">
               {renderPageNumbers()}
             </div>
           </div>
