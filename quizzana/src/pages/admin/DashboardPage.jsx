@@ -172,7 +172,7 @@ export default function Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <Button className="btn-secondary">Ver</Button>
+                  <Button className="btn-primary">Ver</Button>
                 </div>
               ))}
             </div>
