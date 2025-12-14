@@ -26,7 +26,7 @@ export default function Dashboard() {
     const [recentQuizzes, setRecentQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // 🚨 O useEffect agora depende do 'user'
+    //  O useEffect agora depende do 'user'
     useEffect(() => {
         if (user?.id) {
             loadDashboardData(user.id);
@@ -36,7 +36,7 @@ export default function Dashboard() {
         }
     }, [user]);
 
-    // 🚨 Função que chama o novo serviço filtrado
+    //  Função que chama o novo serviço filtrado
     const loadDashboardData = async (userId) => {
         try {
             setLoading(true);
@@ -58,6 +58,10 @@ export default function Dashboard() {
             setLoading(false);
         }
     };
+
+    // Criar variáveis seguras para evitar erro de undefined
+    const safeActiveQuizzes = Array.isArray(activeQuizzes) ? activeQuizzes : [];
+    const safeRecentQuizzes = Array.isArray(recentQuizzes) ? recentQuizzes : [];
 
     if (loading) {
         return (
@@ -110,7 +114,7 @@ export default function Dashboard() {
                 <div className="stats-grid">
                     <div className="stat-card">
                         <div className="stat-info">
-                            <h3>Total de Seus Quizzes</h3> {/* 🚨 Título ajustado para ser claro */}
+                            <h3>Total de Seus Quizzes</h3> 
                             <p>{stats.totalQuizzes}</p>
                         </div>
                         <div className="stat-icon">
@@ -120,7 +124,7 @@ export default function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-info">
-                            <h3>Questões no Banco</h3> {/* Mantido como total geral */}
+                            <h3>Questões no Banco</h3> 
                             <p>{stats.totalQuestoes}</p>
                         </div>
                         <div className="stat-icon">
@@ -130,7 +134,7 @@ export default function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-info">
-                            <h3>Seus Quizzes Ativos</h3> {/* 🚨 Título ajustado para ser claro */}
+                            <h3>Seus Quizzes Ativos</h3> 
                             <p>{stats.quizzesAtivos}</p>
                         </div>
                         <div className="stat-icon">
@@ -147,8 +151,8 @@ export default function Dashboard() {
                         <p className="subtitle">Acompanhe seus quizzes em andamento.</p>
                         
                         <div>
-                            {activeQuizzes.length > 0 ? (
-                                activeQuizzes.map((quiz) => (
+                            {safeActiveQuizzes.length > 0 ? (
+                                safeActiveQuizzes.map((quiz) => (
                                     <div key={quiz.id} className="quiz-item">
                                         <div className="quiz-info">
                                             <div className="quiz-avatar">
@@ -158,7 +162,7 @@ export default function Dashboard() {
                                                 <h3>{quiz.titulo}</h3>
                                                 <p>
                                                     <Users size={14} />
-                                                    {quiz.configuracoes_quiz?.[0]?.maximo_participantes || 0} participantes
+                                                    {quiz.configuracoes_quiz?.maximo_participantes ?? 0} participantes
                                                 </p>
                                             </div>
                                         </div>
@@ -177,8 +181,8 @@ export default function Dashboard() {
                         <p className="subtitle">Veja o que você criou por último!</p>
                         
                         <div>
-                            {recentQuizzes.length > 0 ? (
-                                recentQuizzes.map((quiz, index) => (
+                            {safeRecentQuizzes.length > 0 ? (
+                                safeRecentQuizzes.map((quiz, index) => (
                                     <div key={quiz.id} className="recent-quiz-item">
                                         <div className="quiz-number">{index + 1}</div>
                                         <div className="recent-quiz-info">
@@ -186,7 +190,7 @@ export default function Dashboard() {
                                             <p>Quiz Personalizado</p>
                                         </div>
                                         <div className="quiz-questions">
-                                            {quiz.configuracoes_quiz?.[0]?.numero_questoes || 0} Questões
+                                            {quiz.configuracoes_quiz?.numero_questoes ?? 0} Questões
                                         </div>
                                     </div>
                                 ))

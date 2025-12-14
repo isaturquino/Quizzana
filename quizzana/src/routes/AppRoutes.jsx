@@ -89,7 +89,7 @@ function AppRoutes() {
 
           {/* Player Routes */}
           <Route
-            path="/join"
+            path="/joinGame/:codigoSala"
             element={
               <ProtectedRoute>
                 <JoinGame />

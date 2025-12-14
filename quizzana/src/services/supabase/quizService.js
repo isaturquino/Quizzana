@@ -1,91 +1,108 @@
 import { supabase } from "./supabaseClient";
+import { createSala } from "./salaService";
+
+function gerarCodigoSala() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 /**
- * Cria um novo quiz completo com configurações e questões
+ * Cria um novo quiz completo com configurações, questões e SALA
  * Automaticamente associa ao usuário logado
  */
-export const createQuiz = async (quizData, configuracoes, questoesSelecionadas, userId) => {
-    try {
-        // Validar se tem userId
-        if (!userId) {
-            throw new Error("Usuário não autenticado");
-        }
-
-        // 1. PRIMEIRO - Inserir as Configurações na tabela 'configuracoes_quiz'
-        const { data: configCreated, error: configError } = await supabase
-            .from("configuracoes_quiz")
-            .insert([
-                {
-                    tempo_limite: configuracoes.tempoMax,
-                    numero_questoes: configuracoes.numeroQuestoes,
-                    pontuacao_por_acerto: configuracoes.pontosPorQuestao,
-                    maximo_participantes: configuracoes.maxParticipantes,
-                },
-            ])
-            .select()
-            .single();
-
-        if (configError) throw configError;
-
-        const configId = configCreated.id;
-
-        // 2. DEPOIS - Inserir o Quiz na tabela 'quiz' com o id_configuracoes E id_user
-        const { data: quizCreated, error: quizError } = await supabase
-            .from("quiz")
-            .insert([
-                {
-                    titulo: quizData.nome,
-                    descricao: quizData.descricao,
-                    ativo: true,
-                    id_configuracoes: configId, // Relacionamento com configurações
-                    id_user: userId, // ADICIONA O ID DO USUÁRIO
-                },
-            ])
-            .select()
-            .single();
-
-        if (quizError) throw quizError;
-
-        const quizId = quizCreated.id;
-
-        // 3. Inserir as Questões Selecionadas na tabela 'quiz_questoes'
-        if (questoesSelecionadas && questoesSelecionadas.length > 0) {
-            const quizQuestoes = questoesSelecionadas.map((questaoId) => ({
-                id_quiz: quizId,
-                id_questao: questaoId,
-            }));
-
-            const { error: questoesError } = await supabase
-                .from("quiz_questoes")
-                .insert(quizQuestoes);
-
-            if (questoesError) throw questoesError;
-        }
-
-        return { success: true, quizId, data: quizCreated };
-    } catch (error) {
-        console.error("Erro ao criar quiz:", error);
-        return { success: false, error };
+export const createQuiz = async (
+  quizData,
+  configuracoes,
+  questoesSelecionadas,
+  userId
+) => {
+  try {
+    if (!userId) {
+      throw new Error("Usuário não autenticado");
     }
+
+    // 1. Criar configurações
+    const { data: configCreated, error: configError } = await supabase
+      .from("configuracoes_quiz")
+      .insert([
+        {
+          tempo_limite: configuracoes.tempoMax,
+          numero_questoes: configuracoes.numeroQuestoes,
+          pontuacao_por_acerto: configuracoes.pontosPorQuestao,
+          maximo_participantes: configuracoes.maxParticipantes,
+        },
+      ])
+      .select()
+      .single();
+
+    if (configError) throw configError;
+    const configId = configCreated.id;
+
+    // 2. Criar quiz
+    const { data: quizCreated, error: quizError } = await supabase
+      .from("quiz")
+      .insert([
+        {
+          titulo: quizData.nome,
+          descricao: quizData.descricao,
+          ativo: true,
+          id_configuracoes: configId,
+          id_user: userId,
+        },
+      ])
+      .select()
+      .single();
+
+    if (quizError) throw quizError;
+    const quizId = quizCreated.id;
+
+    // 3. Inserir questões
+    if (questoesSelecionadas?.length > 0) {
+      const quizQuestoes = questoesSelecionadas.map((id) => ({
+        id_quiz: quizId,
+        id_questao: id,
+      }));
+
+      const { error } = await supabase
+        .from("quiz_questoes")
+        .insert(quizQuestoes);
+
+      if (error) throw error;
+    }
+
+    // 4.  CRIAR SALA
+
+    const codigoSala = gerarCodigoSala();
+
+    await createSala({
+      quizId,
+      codigoSala,
+    });
+
+    return {
+      success: true,
+      quizId,
+      codigoSala,
+      data: quizCreated,
+    };
+  } catch (error) {
+    console.error("Erro ao criar quiz:", error);
+    return { success: false, error };
+  }
 };
 
 /**
- * Busca todos os quizzes com paginação e informações completas
- * Filtra apenas os quizzes do usuário logado
+ * Busca quizzes do usuário
  */
 export const getQuizzes = async (page = 1, limit = 10, userId) => {
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
 
-    // Validar se tem userId
-    if (!userId) {
-        throw new Error("Usuário não autenticado");
-    }
+  if (!userId) throw new Error("Usuário não autenticado");
 
-    const { data, error, count } = await supabase
-        .from("quiz")
-        .select(
-            `
+  const { data, error, count } = await supabase
+    .from("quiz")
+    .select(
+      `
             id,
             titulo,
             descricao,
@@ -98,32 +115,29 @@ export const getQuizzes = async (page = 1, limit = 10, userId) => {
                 maximo_participantes
             )
         `,
-            { count: "exact" }
-        )
-        .eq("id_user", userId) // FILTRA APENAS QUIZZES DO USUÁRIO
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      { count: "exact" }
+    )
+    .eq("id_user", userId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-    if (error) {
-        console.error("Erro ao buscar quizzes:", error);
-        throw error;
-    }
+  if (error) throw error;
 
-    return {
-        quizzes: data,
-        totalPages: Math.ceil(count / limit),
-        total: count,
-    };
+  return {
+    quizzes: data,
+    totalPages: Math.ceil(count / limit),
+    total: count,
+  };
 };
 
 /**
- * Busca um quiz específico com todas as informações
+ * Busca quiz por ID
  */
 export const getQuizById = async (quizId) => {
-    const { data, error } = await supabase
-        .from("quiz")
-        .select(
-            `
+  const { data, error } = await supabase
+    .from("quiz")
+    .select(
+      `
             id,
             titulo,
             descricao,
@@ -149,225 +163,120 @@ export const getQuizById = async (quizId) => {
                 )
             )
         `
-        )
-        .eq("id", quizId)
-        .single();
+    )
+    .eq("id", quizId)
+    .single();
 
-    if (error) {
-        console.error("Erro ao buscar quiz:", error);
-        throw error;
-    }
-
-    return data;
+  if (error) throw error;
+  return data;
 };
 
 /**
- * Atualiza um quiz existente
+ * Atualiza quiz
  */
-export const updateQuiz = async (quizId, quizData, configuracoes, questoesSelecionadas) => {
-    try {
-        // 1. Buscar o id_configuracoes do quiz
-        const { data: quizInfo, error: fetchError } = await supabase
-            .from("quiz")
-            .select("id_configuracoes")
-            .eq("id", quizId)
-            .single();
+export const updateQuiz = async (
+  quizId,
+  quizData,
+  configuracoes,
+  questoesSelecionadas
+) => {
+  try {
+    const { data: quizInfo } = await supabase
+      .from("quiz")
+      .select("id_configuracoes")
+      .eq("id", quizId)
+      .single();
 
-        if (fetchError) throw fetchError;
+    const configId = quizInfo.id_configuracoes;
 
-        const configId = quizInfo.id_configuracoes;
+    await supabase
+      .from("configuracoes_quiz")
+      .update({
+        tempo_limite: configuracoes.tempoMax,
+        numero_questoes: configuracoes.numeroQuestoes,
+        pontuacao_por_acerto: configuracoes.pontosPorQuestao,
+        maximo_participantes: configuracoes.maxParticipantes,
+      })
+      .eq("id", configId);
 
-        // 2. Atualizar configurações
-        const { error: configError } = await supabase
-            .from("configuracoes_quiz")
-            .update({
-                tempo_limite: configuracoes.tempoMax,
-                numero_questoes: configuracoes.numeroQuestoes,
-                pontuacao_por_acerto: configuracoes.pontosPorQuestao,
-                maximo_participantes: configuracoes.maxParticipantes,
-            })
-            .eq("id", configId);
+    await supabase
+      .from("quiz")
+      .update({
+        titulo: quizData.nome,
+        descricao: quizData.descricao,
+      })
+      .eq("id", quizId);
 
-        if (configError) throw configError;
+    await supabase.from("quiz_questoes").delete().eq("id_quiz", quizId);
 
-        // 3. Atualizar informações básicas do quiz
-        const { error: quizError } = await supabase
-            .from("quiz")
-            .update({
-                titulo: quizData.nome,
-                descricao: quizData.descricao,
-            })
-            .eq("id", quizId);
-
-        if (quizError) throw quizError;
-
-        // 3. Atualizar questões (deletar antigas e inserir novas)
-        if (questoesSelecionadas) {
-            // Deletar questões antigas
-            const { error: deleteError } = await supabase
-                .from("quiz_questoes")
-                .delete()
-                .eq("id_quiz", quizId);
-
-            if (deleteError) throw deleteError;
-
-            // Inserir novas questões
-            if (questoesSelecionadas.length > 0) {
-                const quizQuestoes = questoesSelecionadas.map((questaoId) => ({
-                    id_quiz: quizId,
-                    id_questao: questaoId,
-                }));
-
-                const { error: insertError } = await supabase
-                    .from("quiz_questoes")
-                    .insert(quizQuestoes);
-
-                if (insertError) throw insertError;
-            }
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error("Erro ao atualizar quiz:", error);
-        return { success: false, error };
-    }
-};
-
-/**
- * Deleta um quiz (e suas configurações/questões em cascata)
- */
-export const deleteQuiz = async (quizId) => {
-    try {
-        // Buscar o id_configuracoes antes de deletar
-        const { data: quizInfo } = await supabase
-            .from("quiz")
-            .select("id_configuracoes")
-            .eq("id", quizId)
-            .single();
-
-        const configId = quizInfo?.id_configuracoes;
-
-        // 1. Deletar questões associadas
-        await supabase.from("quiz_questoes").delete().eq("id_quiz", quizId);
-
-        // 2. Deletar o quiz
-        const { error } = await supabase.from("quiz").delete().eq("id", quizId);
-
-        if (error) throw error;
-
-        // 3. Deletar configurações (se existir)
-        if (configId) {
-            await supabase.from("configuracoes_quiz").delete().eq("id", configId);
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error("Erro ao deletar quiz:", error);
-        return { success: false, error };
-    }
-};
-
-/**
- * Ativa ou desativa um quiz
- */
-export const toggleQuizStatus = async (quizId, ativo) => {
-    const { error } = await supabase
-        .from("quiz")
-        .update({ ativo })
-        .eq("id", quizId);
-
-    if (error) {
-        console.error("Erro ao alterar status do quiz:", error);
-        throw error;
+    if (questoesSelecionadas?.length > 0) {
+      const quizQuestoes = questoesSelecionadas.map((id) => ({
+        id_quiz: quizId,
+        id_questao: id,
+      }));
+      await supabase.from("quiz_questoes").insert(quizQuestoes);
     }
 
     return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error };
+  }
 };
 
+/**
+ * Deleta quiz
+ */
+export const deleteQuiz = async (quizId) => {
+  try {
+    const { data } = await supabase
+      .from("quiz")
+      .select("id_configuracoes")
+      .eq("id", quizId)
+      .single();
 
-// 🚨 NOVO SERVIÇO PARA O DASHBOARD 🚨
+    const configId = data?.id_configuracoes;
+
+    await supabase.from("quiz_questoes").delete().eq("id_quiz", quizId);
+    await supabase.from("sala").delete().eq("id_quiz", quizId);
+    await supabase.from("quiz").delete().eq("id", quizId);
+
+    if (configId) {
+      await supabase.from("configuracoes_quiz").delete().eq("id", configId);
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
+  }
+};
 
 /**
- * Busca estatísticas e dados de quizzes criados APENAS pelo usuário logado para o Dashboard.
- * @param {string} userId - O ID do usuário logado (UID do Supabase).
+ * Ativa/desativa quiz
+ */
+export const toggleQuizStatus = async (quizId, ativo) => {
+  await supabase.from("quiz").update({ ativo }).eq("id", quizId);
+  return { success: true };
+};
+
+/**
+ * Dashboard
  */
 export async function loadUserDashboardData(userId) {
-    if (!userId) {
-        throw new Error("ID do usuário é necessário para carregar o dashboard.");
-    }
+  if (!userId) throw new Error("Usuário inválido");
 
-    try {
-        // ------------------------------------
-        // 1. ESTATÍSTICAS (Filtradas pelo usuário)
-        // ------------------------------------
-        
-        // Busca quizzes do usuário para estatísticas
-        const { data: quizzesData, count: totalQuizzes, error: quizError } = await supabase
-            .from('quiz')
-            .select('id, ativo', { count: 'exact' })
-            .eq('id_user', userId); // FILTRO PRINCIPAL
+  const { data: quizzesData, count: totalQuizzes } = await supabase
+    .from("quiz")
+    .select("id, ativo", { count: "exact" })
+    .eq("id_user", userId);
 
-        if (quizError) throw quizError;
+  const { count: totalQuestoes } = await supabase
+    .from("questoes")
+    .select("id", { count: "exact" });
 
-        // Busca questões totais no banco (mantida busca geral)
-        const { count: totalQuestoes, error: questoesError } = await supabase
-            .from('questoes')
-            .select('id', { count: 'exact' });
+  const quizzesAtivos = quizzesData?.filter((q) => q.ativo).length || 0;
 
-        if (questoesError) throw questoesError;
-
-        const quizzesAtivos = quizzesData?.filter(q => q.ativo).length || 0;
-
-
-        // ------------------------------------
-        // 2. QUIZZES ATIVOS (Filtrados pelo usuário)
-        // ------------------------------------
-        const { data: activeData, error: activeError } = await supabase
-            .from('quiz')
-            .select(`
-                id,
-                titulo,
-                configuracoes_quiz (
-                    maximo_participantes
-                )
-            `)
-            .eq('id_user', userId) // FILTRO
-            .eq('ativo', true)
-            .order('created_at', { ascending: false })
-            .limit(3);
-
-        if (activeError) throw activeError;
-
-        // ------------------------------------
-        // 3. ÚLTIMOS QUIZZES CRIADOS (Filtrados pelo usuário)
-        // ------------------------------------
-        const { data: recentData, error: recentError } = await supabase
-            .from('quiz')
-            .select(`
-                id,
-                titulo,
-                configuracoes_quiz (
-                    numero_questoes
-                )
-            `)
-            .eq('id_user', userId) // FILTRO
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-        if (recentError) throw recentError;
-        
-        // Retorna todos os dados de forma estruturada
-        return {
-            stats: {
-                totalQuizzes,
-                totalQuestoes,
-                quizzesAtivos
-            },
-            activeQuizzes: activeData || [],
-            recentQuizzes: recentData || []
-        };
-    } catch (error) {
-        console.error("Erro ao carregar dados do Dashboard:", error);
-        throw error;
-    }
+  return {
+    stats: { totalQuizzes, totalQuestoes, quizzesAtivos },
+  };
 }

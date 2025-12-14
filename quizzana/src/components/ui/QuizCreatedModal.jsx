@@ -4,11 +4,11 @@ import { X, Copy, Check, ExternalLink } from 'lucide-react';
 import Button from './Button';
 import './QuizCreatedModal.css';
 
-export default function QuizCreatedModal({ isOpen, onClose, quizId, quizName }) {
+export default function QuizCreatedModal({ isOpen, onClose, quizId, quizName, codigoSala }) {
   const [copied, setCopied] = useState(false);
 
   // URL que o jogador vai usar para entrar no quiz
-  const quizUrl = `${window.location.origin}/join?quiz=${quizId}`;
+  const quizUrl = `${window.location.origin}/joinGame/${codigoSala}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(quizUrl);

@@ -1,125 +1,58 @@
-// JoinGame.jsx - FUNCIONA COM SEU QR CODE EXISTENTE
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { supabase } from "../../services/supabase/supabaseClient";
+import { useNavigate, useParams } from "react-router-dom";
 import "./JoinGame.css";
 import quizzanaLogo from "../../assets/imgs/header.jpg";
 import logo from "../../assets/imgs/quizzana.png";
 
+import { getSalaAtivaByCodigo } from "../../services/supabase/salaService";
+import { createJogador } from "../../services/supabase/jogador";
+
 export default function JoinGame() {
   const [nome, setNome] = useState("");
-  const [codigoManual, setCodigoManual] = useState("");
+  const [codigoSala, setCodigoSala] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
-  const { codigoSala } = useParams();
-  const [searchParams] = useSearchParams();
-  
-  // Pegar o quiz ID da URL (vindo do QR Code)
-  const quizId = searchParams.get("quiz");
+  const { codigoSala: codigoDaRota } = useParams();
 
-  // Se vier quiz ID, buscar o código da sala automaticamente
-  useEffect(() => {
-    if (quizId) {
-      buscarSalaPorQuizId(quizId);
-    }
-  }, [quizId]);
+  // Preencher código automaticamente pela URL
+    useEffect(() => {
+        // Se houver um código na rota, usá-lo.
+        if (codigoDaRota) {
+            setCodigoSala(codigoDaRota.toUpperCase());
+        }
+    // O array de dependências agora usa codigoDaRota
+    }, [codigoDaRota]);
 
-  const buscarSalaPorQuizId = async (qId) => {
-    setLoading(true);
-    const { data: sala, error } = await supabase
-      .from("sala")
-      .select("codigo_sala, id")
-      .eq("id_quiz", qId)
-      .eq("ativa", false)
-      .single();
+  const handleJoin = async (e) => {
+    e.preventDefault();
 
-    if (!error && sala) {
-      setCodigoManual(sala.codigo_sala);
-    }
-    setLoading(false);
-  };
-
-  // Função para entrar na sala
-  const entrarNaSala = async (codigo, nomeJogador) => {
-    if (!nomeJogador.trim()) {
-      alert("Por favor, digite seu nome");
+    if (!nome.trim() || !codigoSala.trim()) {
+      alert("Preencha nome e código da sala");
       return;
     }
-
-    if (!codigo) {
-      alert("Por favor, digite o código da sala");
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      // 1️ Buscar sala pelo código
-      const { data: sala, error: salaError } = await supabase
-        .from("sala")
-        .select("*")
-        .eq("codigo_sala", codigo.toUpperCase())
-        .single();
+      setLoading(true);
 
-      if (salaError || !sala) {
-        alert("❌ Sala não encontrada! Verifique o código.");
-        setLoading(false);
-        return;
-      }
+      // 1️ Buscar sala ativa
+      const sala = await getSalaAtivaByCodigo(codigoSala.toUpperCase());
 
-      // Verificar se a sala já está ativa
-      if (sala.ativa) {
-        alert("⚠️ Esta sala já iniciou o quiz!");
-        setLoading(false);
-        return;
-      }
+      // 2️ Criar jogador
+      const jogador = await createJogador(nome);
 
-      // 2️ Verificar se o jogador já está na sala
-      const { data: jogadorExistente } = await supabase
-        .from("jogador")
-        .select("*")
-        .eq("nome", nomeJogador)
-        .eq("id_sala", sala.id)
-        .maybeSingle();
+      // 3️ Salvar dados localmente
+      localStorage.setItem("jogador", JSON.stringify(jogador));
+      localStorage.setItem("sala", JSON.stringify(sala));
 
-      if (jogadorExistente) {
-        alert("✅ Você já está nesta sala!");
-        navigate(`/waiting-room/${sala.id}`);
-        setLoading(false);
-        return;
-      }
-
-      // 3 Inserir jogador na sala
-      const { data: jogador, error: jogadorError } = await supabase
-        .from("jogador")
-        .insert({
-          nome: nomeJogador,
-          id_sala: sala.id,
-        })
-        .select()
-        .single();
-
-      if (jogadorError) {
-        alert("❌ Erro ao entrar na sala. Tente novamente.");
-        console.error(jogadorError);
-        setLoading(false);
-        return;
-      }
-
-      // 4 Redirecionar para a waiting-room
+      // 4️ Ir para waiting room
       navigate(`/waiting-room/${sala.id}`);
     } catch (error) {
-      console.error("Erro:", error);
-      alert("❌ Erro ao entrar na sala");
+      console.error(error);
+      alert("❌ Sala inválida ou encerrada");
+    } finally {
       setLoading(false);
     }
-  };
-
-  // Handler para o formulário
-  const handleJoinManual = async (e) => {
-    e.preventDefault();
-    const codigo = codigoSala || codigoManual;
-    await entrarNaSala(codigo, nome);
   };
 
   return (
@@ -141,66 +74,32 @@ export default function JoinGame() {
               Entre, teste seus conhecimentos e divirta-se!
             </p>
 
-            {/* Mostrar mensagem se veio do QR Code */}
-            {quizId && (
-              <div className="qr-detected-banner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>QR Code detectado! Digite seu nome para entrar.</span>
-              </div>
-            )}
-
-            <form onSubmit={handleJoinManual} className="join-form">
-              {/* Input Nome */}
+            <form onSubmit={handleJoin} className="join-form">
               <input
                 type="text"
                 placeholder="Seu nome"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 className="join-input"
-                required
                 disabled={loading}
               />
 
-              {/* Input Código */}
               <input
                 type="text"
-                placeholder="Código da sala (ex: ABC123)"
-                value={codigoManual}
-                onChange={(e) => setCodigoManual(e.target.value.toUpperCase())}
+                placeholder="Código da sala"
+                value={codigoSala}
+                onChange={(e) =>
+                  setCodigoSala(e.target.value.toUpperCase())
+                }
                 className="join-input"
-                required
                 maxLength={6}
-                disabled={loading || !!quizId}
+                disabled={loading}
               />
 
-              {/* Botão Entrar */}
-              <button 
-                className="join-btn" 
-                type="submit"
-                disabled={loading}
-              >
+              <button className="join-btn" type="submit" disabled={loading}>
                 {loading ? "Entrando..." : "Entrar na Sala"}
               </button>
             </form>
-
-            {/* Informações de ajuda */}
-            <div className="join-help">
-              <p>
-                <strong>💡 Como entrar:</strong>
-              </p>
-              <ul>
-                <li>Escaneie o QR Code com a câmera do celular</li>
-                <li>Ou digite manualmente o código da sala</li>
-              </ul>
-            </div>
-
-            {codigoManual && (
-              <div className="join-info">
-                <p>Código: <strong>{codigoManual}</strong></p>
-              </div>
-            )}
           </div>
         </div>
       </div>

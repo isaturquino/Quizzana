@@ -24,12 +24,13 @@ function CreateQuiz() {
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
   const isEditing = !!id // Se tem ID, está editando
 
-  // ⬅️ NOVO ESTADO: Controla a visibilidade do modal (showModal)
+  // Controla a visibilidade do modal (showModal)
   const [showModal, setShowModal] = useState(false)
-  // ⬅️ NOVO ESTADO: Guarda os dados do quiz recém-criado para o modal
+  //  Guarda os dados do quiz recém-criado para o modal
   const [createdQuizData, setCreatedQuizData] = useState({
     quizId: null,
-    quizName: ""
+    quizName: "",
+    codigoSala: null,
   })
 
   const [quizData, setQuizData] = useState({
@@ -56,7 +57,7 @@ function CreateQuiz() {
   // Hook para buscar categorias do Supabase
   const { categories, loading: loadingCategories } = useCategories()
 
-  // CORREÇÃO: Carregar dados do quiz se estiver editando
+  // Carregar dados do quiz se estiver editando
   useEffect(() => {
     // Só carrega se tiver ID E o usuário estiver carregado
     if (id && user) { 
@@ -113,7 +114,7 @@ function CreateQuiz() {
     })
   }
   
-  // ⬅️ NOVA FUNÇÃO: Fecha o modal E navega para a biblioteca
+  // Fecha o modal E navega para a biblioteca
   const handleCloseModal = () => {
     setShowModal(false)
     navigate("/admin/biblioteca")
@@ -159,17 +160,18 @@ function CreateQuiz() {
         result = await createQuiz(quizData, configuracoes, selectedQuestions, user.id)
 
         if (result.success) {
-          // ⬅️ LÓGICA DO DIFF: Abrir modal com informações do quiz criado
+          // Abrir modal com informações do quiz criado
           setCreatedQuizData({
             quizId: result.quizId,
-            quizName: quizData.nome
+            quizName: quizData.nome,
+            codigoSala: result.codigoSala
           })
           setShowModal(true) // Abre o modal
 
           // Limpar formulário
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
-          // ⚠️ A navegação foi removida e acontecerá no handleCloseModal
+          //  A navegação foi removida e acontecerá no handleCloseModal
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -312,9 +314,10 @@ function CreateQuiz() {
       {/* Modal de Quiz Criado (renderizado conforme o diff) */}
       <QuizCreatedModal 
         isOpen={showModal}
-        onClose={handleCloseModal} // ⬅️ Funcao que fecha o modal E navega
+        onClose={handleCloseModal} 
         quizId={createdQuizData.quizId}
         quizName={createdQuizData.quizName}
+        codigoSala={createdQuizData.codigoSala}
       />
     </div>
   )
