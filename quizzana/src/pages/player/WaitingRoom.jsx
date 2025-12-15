@@ -20,7 +20,7 @@ export default function WaitingRoom() {
       .single();
 
     if (!error) setSala(data);
-    if (data?.ativa) navigate(`/play/${salaId}`);
+    if (data?.ativa) navigate(`/play/${data.id}`);
   };
 
   const carregarJogadores = async () => {
@@ -48,7 +48,7 @@ export default function WaitingRoom() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "sala", filter: `id=eq.${salaId}` },
         (payload) => {
-          if (payload.new.ativa) navigate(`/play/${salaId}`);
+          if (payload.new.ativa) navigate(`/play/${payload.new.id}`);
         }
       )
       .subscribe();

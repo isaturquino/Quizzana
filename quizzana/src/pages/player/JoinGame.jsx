@@ -39,7 +39,7 @@ export default function JoinGame() {
       const sala = await getSalaAtivaByCodigo(codigoSala.toUpperCase());
 
       // 2️ Criar jogador
-      const jogador = await createJogador(nome);
+      const jogador = await createJogador(nome, sala.id);
 
       // 3️ Salvar dados localmente
       localStorage.setItem("jogador", JSON.stringify(jogador));
