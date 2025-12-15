@@ -20,7 +20,7 @@ export const createQuiz = async (
       throw new Error("Usuário não autenticado");
     }
 
-    // 1. Criar configurações
+    // 1. Criar configurações 
     const { data: configCreated, error: configError } = await supabase
       .from("configuracoes_quiz")
       .insert([
@@ -29,6 +29,9 @@ export const createQuiz = async (
           numero_questoes: configuracoes.numeroQuestoes,
           pontuacao_por_acerto: configuracoes.pontosPorQuestao,
           maximo_participantes: configuracoes.maxParticipantes,
+        
+          // embaralhar_questoes: configuracoes.embaralharQuestoes,
+          // selecao_aleatoria: configuracoes.selecaoAleatoria,
         },
       ])
       .select()
@@ -69,8 +72,7 @@ export const createQuiz = async (
       if (error) throw error;
     }
 
-    // 4.  CRIAR SALA
-
+    // 4. CRIAR SALA
     const codigoSala = gerarCodigoSala();
 
     await createSala({
@@ -196,6 +198,8 @@ export const updateQuiz = async (
         numero_questoes: configuracoes.numeroQuestoes,
         pontuacao_por_acerto: configuracoes.pontosPorQuestao,
         maximo_participantes: configuracoes.maxParticipantes,
+        // embaralhar_questoes: configuracoes.embaralharQuestoes,
+        // selecao_aleatoria: configuracoes.selecaoAleatoria,
       })
       .eq("id", configId);
 
@@ -277,6 +281,10 @@ export async function loadUserDashboardData(userId) {
   const quizzesAtivos = quizzesData?.filter((q) => q.ativo).length || 0;
 
   return {
-    stats: { totalQuizzes, totalQuestoes, quizzesAtivos },
+    stats: { 
+      totalQuizzes: totalQuizzes || 0, 
+      totalQuestoes: totalQuestoes || 0, 
+      quizzesAtivos 
+    },
   };
 }

@@ -16,17 +16,15 @@ import Button from "../../components/ui/Button"
 import "./CreateQuizPage.css"
 
 function CreateQuiz() {
-  const { id } = useParams() // Pega o ID da URL se existir
+  const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useContext(AuthContext) // PEGA O USUÁRIO LOGADO
+  const { user } = useContext(AuthContext)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
-  const isEditing = !!id // Se tem ID, está editando
+  const isEditing = !!id
 
-  // Controla a visibilidade do modal (showModal)
   const [showModal, setShowModal] = useState(false)
-  //  Guarda os dados do quiz recém-criado para o modal
   const [createdQuizData, setCreatedQuizData] = useState({
     quizId: null,
     quizName: "",
@@ -51,33 +49,25 @@ function CreateQuiz() {
   const [selectedCategory, setSelectedCategory] = useState("todas")
   const [selectedQuestions, setSelectedQuestions] = useState([])
 
-  // Hook para buscar questões do Supabase
   const { questions, loading } = useQuestions()
-  
-  // Hook para buscar categorias do Supabase
   const { categories, loading: loadingCategories } = useCategories()
 
-  // Carregar dados do quiz se estiver editando
   useEffect(() => {
-    // Só carrega se tiver ID E o usuário estiver carregado
     if (id && user) { 
       loadQuizData(id)
     }
-  }, [id, user]) // Dependência 'user' para garantir o timing
+  }, [id, user])
 
   const loadQuizData = async (quizId) => {
     setIsLoadingQuiz(true)
     try {
-      // Use getQuizById(quizId) se o RLS estiver desativado no quizService.js
       const quiz = await getQuizById(quizId) 
       
-      // Preencher dados do quiz
       setQuizData({
         nome: quiz.titulo,
         descricao: quiz.descricao || "",
       })
 
-      // Preencher configurações
       if (quiz.configuracoes_quiz?.[0]) {
         const config = quiz.configuracoes_quiz[0]
         setConfiguracoes({
@@ -90,7 +80,6 @@ function CreateQuiz() {
         })
       }
 
-      // Preencher questões selecionadas
       if (quiz.quiz_questoes) {
         const questoesIds = quiz.quiz_questoes.map(q => q.id_questao)
         setSelectedQuestions(questoesIds)
@@ -104,31 +93,34 @@ function CreateQuiz() {
     }
   }
 
+  // ✅ VALIDAÇÃO: Bloqueia seleção se atingir o limite
   const handleQuestionToggle = (questionId) => {
     setSelectedQuestions((prev) => {
       if (prev.includes(questionId)) {
+        // Permite desmarcar sempre
         return prev.filter((id) => id !== questionId)
       } else {
+        // ✅ VERIFICA O LIMITE antes de adicionar
+        if (prev.length >= configuracoes.numeroQuestoes) {
+          alert(`Você só pode selecionar ${configuracoes.numeroQuestoes} questões! Desmarque alguma para adicionar outra.`)
+          return prev
+        }
         return [...prev, questionId]
       }
     })
   }
   
-  // Fecha o modal E navega para a biblioteca
   const handleCloseModal = () => {
     setShowModal(false)
     navigate("/admin/biblioteca")
   }
 
-
   const handleCreateQuiz = async () => {
-    // Validar usuário logado
     if (!user) {
       alert("Você precisa estar logado para criar/editar quizzes!");
       return;
     }
 
-    // Validações
     if (!quizData.nome.trim()) {
       alert("Por favor, preencha o nome do quiz!")
       return
@@ -139,39 +131,39 @@ function CreateQuiz() {
       return
     }
 
+    // ✅ VALIDAÇÃO: Verifica se número de questões selecionadas está correto
+    if (selectedQuestions.length !== configuracoes.numeroQuestoes) {
+      alert(`Você deve selecionar exatamente ${configuracoes.numeroQuestoes} questões! (Atualmente: ${selectedQuestions.length})`)
+      return
+    }
+
     setIsCreating(true)
 
     try {
       let result
       
       if (isEditing) {
-        // Atualizar quiz existente
         result = await updateQuiz(id, quizData, configuracoes, selectedQuestions)
         
         if (result.success) {
           alert("Quiz atualizado com sucesso!")
-          // No modo edição, navega direto
           navigate("/admin/biblioteca") 
         } else {
           alert("Erro ao atualizar quiz: " + result.error?.message)
         }
       } else {
-        // Criar novo quiz - PASSA O USER ID
         result = await createQuiz(quizData, configuracoes, selectedQuestions, user.id)
 
         if (result.success) {
-          // Abrir modal com informações do quiz criado
           setCreatedQuizData({
             quizId: result.quizId,
             quizName: quizData.nome,
             codigoSala: result.codigoSala
           })
-          setShowModal(true) // Abre o modal
+          setShowModal(true)
 
-          // Limpar formulário
           setQuizData({ nome: "", descricao: "" })
           setSelectedQuestions([])
-          //  A navegação foi removida e acontecerá no handleCloseModal
         } else {
           alert("Erro ao criar quiz: " + result.error?.message)
         }
@@ -184,7 +176,6 @@ function CreateQuiz() {
     }
   }
 
-  // Filtra questões pelo search e categoria
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === "todas" || q.categoria_id === Number(selectedCategory)
@@ -205,6 +196,9 @@ function CreateQuiz() {
     )
   }
 
+  // ✅ CALCULA quantas questões ainda podem ser selecionadas
+  const questoesRestantes = configuracoes.numeroQuestoes - selectedQuestions.length
+
   return (
     <div className="layout">
       <SideBar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} activeItem="criar-quiz" />
@@ -220,7 +214,6 @@ function CreateQuiz() {
               <p className="page-subtitle-quiz">Configure as opções e selecione as questões</p>
             </div>
             
-            {/* Mantemos apenas o botão de Salvar/Criar aqui para simplificar */}
             <Button 
               className="btn-primary" 
               onClick={handleCreateQuiz}
@@ -237,9 +230,36 @@ function CreateQuiz() {
 
           <div className="questions-selection-section">
             <h2 className="section-title">Selecionar Questões do Banco</h2>
-            <p className="section-subtitle">
-              Escolha as questões que farão parte do quiz ({selectedQuestions.length} selecionadas)
-            </p>
+            
+            {/* ✅ INDICADOR DE PROGRESSO */}
+            <div style={{ 
+              background: questoesRestantes === 0 ? '#d4edda' : '#fff3cd',
+              border: `2px solid ${questoesRestantes === 0 ? '#28a745' : '#ffc107'}`,
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '24px' }}>
+                {questoesRestantes === 0 ? '✅' : '⚠️'}
+              </span>
+              <div>
+                <strong>
+                  {selectedQuestions.length} de {configuracoes.numeroQuestoes} questões selecionadas
+                </strong>
+                {questoesRestantes > 0 ? (
+                  <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+                    Selecione mais {questoesRestantes} questão(ões) para atingir o limite configurado
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: '14px', color: '#155724' }}>
+                    ✓ Limite atingido! Você pode criar o quiz agora.
+                  </p>
+                )}
+              </div>
+            </div>
 
             <div className="questions-filters">
               <div className="filter-group">
@@ -276,21 +296,40 @@ function CreateQuiz() {
                   Nenhuma questão encontrada
                 </p>
               ) : (
-                filteredQuestions.map((question) => (
-                  <div key={question.id} className="question-item">
-                    <input
-                      type="checkbox"
-                      id={`question-${question.id}`}
-                      checked={selectedQuestions.includes(question.id)}
-                      onChange={() => handleQuestionToggle(question.id)}
-                      className="question-checkbox"
-                    />
-                    <label htmlFor={`question-${question.id}`} className="question-label">
-                      {question.question}
-                    </label>
-                    <span className="category-badge">{question.category}</span>
-                  </div>
-                ))
+                filteredQuestions.map((question) => {
+                  const isSelected = selectedQuestions.includes(question.id)
+                  const isDisabled = !isSelected && selectedQuestions.length >= configuracoes.numeroQuestoes
+                  
+                  return (
+                    <div 
+                      key={question.id} 
+                      className={`question-item ${isDisabled ? 'question-item-disabled' : ''}`}
+                      style={{
+                        opacity: isDisabled ? 0.5 : 1,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id={`question-${question.id}`}
+                        checked={isSelected}
+                        onChange={() => handleQuestionToggle(question.id)}
+                        className="question-checkbox"
+                        disabled={isDisabled}
+                      />
+                      <label 
+                        htmlFor={`question-${question.id}`} 
+                        className="question-label"
+                        style={{
+                          cursor: isDisabled ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {question.question}
+                      </label>
+                      <span className="category-badge">{question.category}</span>
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>
@@ -303,7 +342,10 @@ function CreateQuiz() {
             <button 
               className="btn-criar-quiz" 
               onClick={handleCreateQuiz}
-              disabled={isCreating}
+              disabled={isCreating || selectedQuestions.length !== configuracoes.numeroQuestoes}
+              style={{
+                opacity: selectedQuestions.length !== configuracoes.numeroQuestoes ? 0.6 : 1
+              }}
             >
               {isCreating ? "Salvando..." : (isEditing ? "Salvar Alterações →" : "Criar Quiz →")}
             </button>
@@ -311,7 +353,6 @@ function CreateQuiz() {
         </div>
       </div>
       
-      {/* Modal de Quiz Criado (renderizado conforme o diff) */}
       <QuizCreatedModal 
         isOpen={showModal}
         onClose={handleCloseModal} 

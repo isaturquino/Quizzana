@@ -119,13 +119,48 @@
   background: transparent;
 }
 
+/* 🔽 LISTA COM SCROLL */
 .questions-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
   padding-right: 8px;
+  position: relative;
+}
+
+/* Scrollbar (desktop) */
+.questions-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.questions-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+.questions-list::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 8px;
+}
+
+.questions-list::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Fade no final da lista */
+.questions-list::after {
+  content: "";
+  position: sticky;
+  bottom: 0;
+  height: 24px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0),
+    white
+  );
+  pointer-events: none;
 }
 
 .question-item {
@@ -214,6 +249,52 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
 }
+
+/* Questão desabilitada quando limite é atingido */
+.question-item-disabled {
+  position: relative;
+  pointer-events: none;
+}
+
+.question-item-disabled::after {
+  content: "Limite atingido";
+  position: absolute;
+  right: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ffc107;
+  color: #000;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+
+.question-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+
+.question-item-disabled .question-label {
+  color: #999;
+  cursor: not-allowed !important;
+}
+
+.question-item {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.question-item-disabled:hover {
+  transform: none !important;
+}
+
+
+
+
+
 
 /* Responsivo */
 @media (max-width: 1024px) {

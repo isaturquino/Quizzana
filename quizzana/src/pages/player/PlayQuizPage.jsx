@@ -8,26 +8,34 @@ import logo from "../../assets/imgs/quizzanalogo.png";
 
 export default function PlayQuizPage() {
   const navigate = useNavigate();
-
-
   const { salaId } = useParams();
   const salaIdFinal = Number(salaId);
 
-  // ESTADOS 
+  // ESTADOS
   const [quiz, setQuiz] = useState(null);
+  const [configuracoes, setConfiguracoes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [questaoAtual, setQuestaoAtual] = useState(0);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [respostas, setRespostas] = useState([]);
-  const [time, setTime] = useState(30);
+  const [time, setTime] = useState(30); // Será atualizado pelas configurações
 
   const jogador = JSON.parse(localStorage.getItem("jogador"));
   const sala = JSON.parse(localStorage.getItem("sala"));
 
+  // FUNÇÃO PARA EMBARALHAR ARRAY
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
-  // BUSCAR QUIZ + SALA
+  // BUSCAR QUIZ + SALA + CONFIGURAÇÕES
   useEffect(() => {
     async function fetchQuiz() {
       try {
@@ -47,10 +55,10 @@ export default function PlayQuizPage() {
 
         const quizIdFinal = salaData.id_quiz;
 
-        // 2️ Buscar quiz 
+        // 2️ BUSCAR QUIZ
         const { data: quizData, error: quizError } = await supabase
           .from("quiz")
-          .select("*")
+          .select("*, id_configuracoes")
           .eq("id", quizIdFinal)
           .single();
 
@@ -58,7 +66,27 @@ export default function PlayQuizPage() {
           throw new Error("Quiz não encontrado.");
         }
 
-        // 3️ Buscar relação quiz → questões
+        // 3️ BUSCAR CONFIGURAÇÕES DO QUIZ
+        const { data: configData, error: configError } = await supabase
+          .from("configuracoes_quiz")
+          .select("*")
+          .eq("id", quizData.id_configuracoes)
+          .single();
+
+        if (configError) {
+          console.warn("Configurações não encontradas, usando padrão");
+        }
+
+        const config = configData || {
+          tempo_limite: 20,
+          numero_questoes: 15,
+          pontuacao_por_acerto: 10,
+          maximo_participantes: 50,
+        };
+
+        setConfiguracoes(config);
+
+        // 4️ BUSCAR RELAÇÃO QUIZ → QUESTÕES
         const { data: quizQuestoesData, error: relError } = await supabase
           .from("quiz_questoes")
           .select("id_questao")
@@ -68,7 +96,7 @@ export default function PlayQuizPage() {
 
         const questoesIds = quizQuestoesData.map((q) => q.id_questao);
 
-        // 4️ Buscar questões 
+        // 5️ BUSCAR QUESTÕES (não precisa selecionar, admin já selecionou)
         const { data: questoesData, error: questoesError } = await supabase
           .from("questoes")
           .select("*")
@@ -76,21 +104,36 @@ export default function PlayQuizPage() {
 
         if (questoesError) throw questoesError;
 
+        let questoesProcessadas = questoesData.map((q) => ({
+          id: q.id,
+          pergunta: q.enunciado,
+          opcao_a: q.alternativaA,
+          opcao_b: q.alternativaB,
+          opcao_c: q.alternativaC,
+          opcao_d: q.alternativaD,
+          resposta_correta: q.respostaCorreta,
+        }));
+
+        // 6️ EMBARALHAR QUESTÕES (se configurado)
+        // O admin já selecionou as questões na criação do quiz
+        if (config.embaralhar_questoes !== false) {
+          questoesProcessadas = shuffleArray(questoesProcessadas);
+        }
+
         const quizCompleto = {
           id: quizData.id,
           titulo: quizData.titulo || "Quiz",
-          questoes: questoesData.map((q) => ({
-            id: q.id,
-            pergunta: q.enunciado,
-            opcao_a: q.alternativaA,
-            opcao_b: q.alternativaB,
-            opcao_c: q.alternativaC,
-            opcao_d: q.alternativaD,
-            resposta_correta: q.respostaCorreta,
-          })),
+          questoes: questoesProcessadas,
         };
 
         setQuiz(quizCompleto);
+        
+        // 7️ DEFINIR TEMPO POR QUESTÃO (tempo total / número de questões)
+        const tempoPorQuestao = Math.floor(
+          (config.tempo_limite * 60) / questoesProcessadas.length
+        );
+        setTime(tempoPorQuestao);
+
       } catch (err) {
         console.error(err);
         setError(err.message);
@@ -98,7 +141,6 @@ export default function PlayQuizPage() {
         setLoading(false);
       }
     }
-
 
     if (salaIdFinal && !isNaN(salaIdFinal)) {
       fetchQuiz();
@@ -108,7 +150,7 @@ export default function PlayQuizPage() {
     }
   }, [salaIdFinal]);
 
-  // TIMER 
+  // TIMER
   useEffect(() => {
     if (!quiz || submitted || time <= 0) return;
 
@@ -132,45 +174,46 @@ export default function PlayQuizPage() {
 
   // SUBMETER RESPOSTA
   function handleSubmit() {
-  if (!quiz || submitted) return;
+    if (!quiz || submitted || !configuracoes) return;
 
-  setSubmitted(true);
+    setSubmitted(true);
 
-  const questaoAtualData = quiz.questoes[questaoAtual];
-  const acertou = selected === questaoAtualData.resposta_correta;
+    const questaoAtualData = quiz.questoes[questaoAtual];
+    const acertou = selected === questaoAtualData.resposta_correta;
 
-  const jogador = JSON.parse(localStorage.getItem("jogador"));
+    const jogador = JSON.parse(localStorage.getItem("jogador"));
 
-  const pontuacao = acertou ? 1 : 0;
+    // USAR PONTUAÇÃO DAS CONFIGURAÇÕES
+    const pontuacao = acertou ? configuracoes.pontuacao_por_acerto : 0;
 
-  // SALVAR NO BANCO
-  salvarResposta({
-    idJogador: jogador.id,
-    idQuestao: questaoAtualData.id,
-    idSala: sala.id,
-    alternativaEscolhida: selected,
-    respostaCorreta: questaoAtualData.resposta_correta,
-    pontuacaoObtida: pontuacao,
-  }).catch((err) => {
-    console.error("Erro ao salvar resposta:", err);
-  });
+    // SALVAR NO BANCO
+    salvarResposta({
+      idJogador: jogador.id,
+      idQuestao: questaoAtualData.id,
+      idSala: sala.id,
+      alternativaEscolhida: selected,
+      respostaCorreta: questaoAtualData.resposta_correta,
+      pontuacaoObtida: pontuacao,
+    }).catch((err) => {
+      console.error("Erro ao salvar resposta:", err);
+    });
 
-  // continua salvando local também 
-  setRespostas((prev) => [
-    ...prev,
-    {
-      questao_id: questaoAtualData.id,
-      resposta_usuario: selected,
-      correta: acertou,
-      tempo_resposta: 30 - time,
-    },
-  ]);
+    // Salvar localmente também
+    setRespostas((prev) => [
+      ...prev,
+      {
+        questao_id: questaoAtualData.id,
+        resposta_usuario: selected,
+        correta: acertou,
+        pontuacao: pontuacao,
+        tempo_resposta: Math.floor((configuracoes.tempo_limite * 60) / quiz.questoes.length) - time,
+      },
+    ]);
 
-  setTimeout(() => {
-    proximaQuestao();
-  }, 2000);
-}
-
+    setTimeout(() => {
+      proximaQuestao();
+    }, 2000);
+  }
 
   // PRÓXIMA QUESTÃO
   function proximaQuestao() {
@@ -178,7 +221,12 @@ export default function PlayQuizPage() {
       setQuestaoAtual((prev) => prev + 1);
       setSelected(null);
       setSubmitted(false);
-      setTime(30);
+      
+      // RESETAR TEMPO BASEADO NAS CONFIGURAÇÕES
+      const tempoPorQuestao = Math.floor(
+        (configuracoes.tempo_limite * 60) / quiz.questoes.length
+      );
+      setTime(tempoPorQuestao);
     } else {
       finalizarQuiz();
     }
@@ -186,10 +234,11 @@ export default function PlayQuizPage() {
 
   // FINALIZAR QUIZ
   async function finalizarQuiz() {
-    const pontuacao = respostas.filter((r) => r.correta).length;
+    const pontuacaoTotal = respostas.reduce((acc, r) => acc + r.pontuacao, 0);
+    const acertos = respostas.filter((r) => r.correta).length;
 
     alert(
-      `Quiz finalizado! Você acertou ${pontuacao} de ${quiz.questoes.length} questões!`
+      `Quiz finalizado!\n\nVocê acertou ${acertos} de ${quiz.questoes.length} questões!\n\nPontuação total: ${pontuacaoTotal} pontos`
     );
 
     navigate("/");
@@ -224,14 +273,12 @@ export default function PlayQuizPage() {
   const formatTime = (t) => {
     const m = Math.floor(t / 60);
     const s = t % 60;
-    return `${m.toString().padStart(2, "0")}:${s
-      .toString()
-      .padStart(2, "0")}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // FALLBACKS (NÃO MEXI)
+  // FALLBACKS
   if (loading) {
-    return <div className="pq-fallback-state">Carregando...</div>;
+    return <div className="pq-fallback-state">Carregando quiz e configurações...</div>;
   }
 
   if (error || !quiz) {
@@ -244,9 +291,7 @@ export default function PlayQuizPage() {
     );
   }
 
-  const progressPercent =
-    ((questaoAtual + 1) / quiz.questoes.length) * 100;
-
+  const progressPercent = ((questaoAtual + 1) / quiz.questoes.length) * 100;
   const questaoAtualData = quiz.questoes[questaoAtual];
   const opcoes = [
     questaoAtualData.opcao_a,
@@ -258,7 +303,9 @@ export default function PlayQuizPage() {
   return (
     <div className="pq-container">
       <header className="wr-header">
-        <button className="wr-back" onClick={handleBack}>←</button>
+        <button className="wr-back" onClick={handleBack}>
+          ←
+        </button>
         <div
           className="wr-header-bar"
           style={{ backgroundImage: `url(${headerImg})` }}

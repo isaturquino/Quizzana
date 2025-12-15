@@ -23,7 +23,8 @@ export default function QuestionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const { questions, loading, totalPages, refetch } = useQuestions(currentPage);
+  const { questions, loading, totalPages,refetch } = useQuestions(currentPage, 5);
+
   const {
     categories,
     loading: categoriesLoading,

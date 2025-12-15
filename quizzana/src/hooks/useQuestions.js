@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../services/supabase/supabaseClient.js";
 
-export function useQuestions(page = 1, limit = 5) {
+export function useQuestions(page = 1, limit = null) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
@@ -9,11 +9,7 @@ export function useQuestions(page = 1, limit = 5) {
   const fetchQuestions = async () => {
     setLoading(true);
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    // Busca paginada
-    const { data, error, count } = await supabase
+    let query = supabase
       .from("questoes")
       .select(`
         id,
@@ -25,8 +21,16 @@ export function useQuestions(page = 1, limit = 5) {
         respostaCorreta,
         categoria_id,
         categoria ( nome )
-      `, { count: "exact" })
-      .range(from, to);
+      `, { count: "exact" });
+
+    // 👉 Só aplica paginação se limit existir
+    if (limit) {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      query = query.range(from, to);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error("Erro ao buscar questões:", error);
@@ -48,7 +52,11 @@ export function useQuestions(page = 1, limit = 5) {
 
       setQuestions(formatted);
 
-      setTotalPages(Math.ceil(count / limit));
+      if (limit) {
+        setTotalPages(Math.ceil(count / limit));
+      } else {
+        setTotalPages(1);
+      }
     }
 
     setLoading(false);
@@ -56,7 +64,7 @@ export function useQuestions(page = 1, limit = 5) {
 
   useEffect(() => {
     fetchQuestions();
-  }, [page]);
+  }, [page, limit]);
 
   return { questions, loading, totalPages, refetch: fetchQuestions };
 }

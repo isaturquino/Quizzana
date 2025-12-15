@@ -11,34 +11,80 @@ export default function WaitingRoom() {
 
   const [jogadores, setJogadores] = useState([]);
   const [sala, setSala] = useState(null);
+  const [configuracoes, setConfiguracoes] = useState(null); 
+  const [limiteAtingido, setLimiteAtingido] = useState(false); 
 
+  const jogadorLocal = JSON.parse(localStorage.getItem("jogador"));
+
+  //  CARREGAR SALA + CONFIGURAÇÕES
   const carregarSala = async () => {
+    // 1️ Buscar sala com dados do quiz
     const { data, error } = await supabase
       .from("sala")
-      .select("*")
+      .select("*, quiz(*)") // ✅ JOIN com quiz
       .eq("id", salaId)
       .single();
 
-    if (!error) setSala(data);
+    if (!error) {
+      setSala(data);
+
+      // 2️ Buscar configurações do quiz
+      if (data?.quiz?.id_configuracoes) {
+        const { data: configData } = await supabase
+          .from("configuracoes_quiz")
+          .select("*")
+          .eq("id", data.quiz.id_configuracoes)
+          .single();
+
+        if (configData) {
+          setConfiguracoes(configData);
+        }
+      }
+    }
+
     if (data?.ativa) navigate(`/play/${data.id}`);
   };
 
+  //  CARREGAR JOGADORES + VALIDAR LIMITE
   const carregarJogadores = async () => {
     const { data, error } = await supabase
       .from("jogador")
       .select("*")
       .eq("id_sala", salaId);
 
-    if (!error) setJogadores(data);
+    if (!error && data) {
+      setJogadores(data);
+
+      //  VERIFICAR LIMITE DE PARTICIPANTES
+      if (configuracoes && data.length >= configuracoes.maximo_participantes) {
+        const jogadorJaEsta = data.some((j) => j.id === jogadorLocal?.id);
+
+        if (!jogadorJaEsta) {
+          setLimiteAtingido(true);
+          alert(
+            `Sala cheia! Limite de ${configuracoes.maximo_participantes} participantes atingido.`
+          );
+          navigate("/join");
+        }
+      }
+    }
   };
 
   const iniciarRealtime = () => {
+    //  Recarregar jogadores ao detectar mudanças
     supabase
       .channel(`jogadores-sala-${salaId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "jogador", filter: `id_sala=eq.${salaId}` },
-        (payload) => setJogadores((prev) => [...prev, payload.new])
+        {
+          event: "*",
+          schema: "public",
+          table: "jogador",
+          filter: `id_sala=eq.${salaId}`,
+        },
+        () => {
+          carregarJogadores(); 
+        }
       )
       .subscribe();
 
@@ -56,9 +102,14 @@ export default function WaitingRoom() {
 
   useEffect(() => {
     carregarSala();
-    carregarJogadores();
-    iniciarRealtime();
   }, []);
+
+  useEffect(() => {
+    if (configuracoes) {
+      carregarJogadores();
+      iniciarRealtime();
+    }
+  }, [configuracoes]);
 
   const voltarParaJoin = () => navigate("/join");
 
@@ -67,6 +118,24 @@ export default function WaitingRoom() {
     const diff = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
     return diff < 1 ? "Conectado agora" : `Conectado a ${diff}min`;
   };
+
+  //  SE SALA CHEIA, MOSTRA MENSAGEM
+  if (limiteAtingido) {
+    return (
+      <div className="wr-frame">
+        <div className="wr-border">
+          <div className="wr-main">
+            <div className="wr-center">
+              <h1 className="wr-title">Sala Cheia</h1>
+              <p className="wr-sub">
+                Esta sala atingiu o limite de participantes.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="wr-frame">
@@ -110,7 +179,11 @@ export default function WaitingRoom() {
                   </svg>
                   <span>Participantes Conectados</span>
                 </div>
-                <div className="wr-badge">{jogadores.length}</div>
+                {/* MOSTRA CONTADOR COM LIMITE */}
+                <div className="wr-badge">
+                  {jogadores.length}
+                  {configuracoes && `/${configuracoes.maximo_participantes}`}
+                </div>
               </div>
 
               <ul className="wr-list">

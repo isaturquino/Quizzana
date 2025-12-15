@@ -18,6 +18,7 @@ export default function BibliotecaQuizPage() {
 
   // Buscar quizzes do Supabase
   const { quizzes, loading, totalPages, total, refetch } = useQuizzes(currentPage, 10);
+  
 
   const handleDeleteQuiz = async (quizId) => {
     if (window.confirm('Tem certeza que deseja deletar este quiz?')) {
