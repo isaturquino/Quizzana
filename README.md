@@ -119,9 +119,11 @@ Esses materiais foram utilizados como base para a definição dos requisitos e d
 - **React** — Biblioteca principal da interface
 - **Vite** — Ferramenta de build e desenvolvimento
 - **CSS** — Estilização dos componentes
-- **ESLint** — Padronização e qualidade do código
+- **Lucide-React** — Biblioteca de Icons
+- **Chart.js** — Biblioteca de gráficos
 
-### 🧑‍💻 Backend e Banco de Dados
+
+# 🧑‍💻 Backend e Banco de Dados
 - **Supabase**
   - Autenticação de usuários
   - Banco de dados PostgreSQL
