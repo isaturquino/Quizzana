@@ -15,7 +15,6 @@ import Register from "../pages/auth/RegisterPage";
 import Dashboard from "../pages/admin/DashboardPage";
 import Questions from "../pages/admin/QuestionsPage";
 import CreateQuiz from "../pages/admin/CreateQuizPage";
-import ManageSalas from "../pages/admin/ManageSalaPage";
 import Biblioteca from "../pages/admin/BibliotecaQuizPage";
 
 // Player Pages
@@ -78,15 +77,6 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin/salas"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <ManageSalas />
-              </ProtectedRoute>
-            }
-          />
-
           {/* Player Routes */}
           <Route
             path="/joinGame/:codigoSala"
