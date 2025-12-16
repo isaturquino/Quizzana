@@ -21,7 +21,6 @@ const Sidebar = ({ activeItem = "menu", isOpen, setIsOpen }) => {
     { id: "menu", label: "Menu", icon: LayoutGrid, path: "/admin" },
     { id: "meus-quizzes", label: "Meus quizzes", icon: BookOpen, path: "/admin/biblioteca" },
     { id: "banco-questoes", label: "Banco de questões", icon: Database, path: "/admin/questions" },
-    { id: "resultados", label: "Resultados", icon: BarChart3, path: "/results/:salaId" },
     { id: "criar-quiz", label: "Criar Quiz", icon: Plus, isAction: true, path: "/admin/create-quiz" },
   ];
 

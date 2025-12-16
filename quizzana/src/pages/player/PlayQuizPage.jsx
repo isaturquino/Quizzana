@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../services/supabase/supabaseClient";
 import { salvarResposta } from "../../services/supabase/respostaService";
+import { salvarResultadoFinal } from "../../services/supabase/resultsService";
 import "./PlayQuizPage.css";
 import headerImg from "../../assets/imgs/header.jpg";
 import logo from "../../assets/imgs/quizzanalogo.png";
@@ -237,11 +238,32 @@ export default function PlayQuizPage() {
     const pontuacaoTotal = respostas.reduce((acc, r) => acc + r.pontuacao, 0);
     const acertos = respostas.filter((r) => r.correta).length;
 
+    // Obter dados necessários do localStorage
+    const jogador = JSON.parse(localStorage.getItem("jogador"));
+    const sala = JSON.parse(localStorage.getItem("sala"));
+
     alert(
       `Quiz finalizado!\n\nVocê acertou ${acertos} de ${quiz.questoes.length} questões!\n\nPontuação total: ${pontuacaoTotal} pontos`
     );
+    try {
+        // INSERÇÃO DO RESULTADO FINAL AGORA OCORRE AQUI
+        await salvarResultadoFinal({
+            idSala: salaIdFinal, // Usamos o ID da sala da URL (mais confiável)
+            idJogador: jogador.id, 
+            pontuacaoTotal: pontuacaoTotal,
+            acertos: acertos,
+        });
 
-    navigate("/");
+        // Navega para a página de resultados usando o ID da sala.
+        navigate(`/results/${salaId}`); 
+        
+    } catch (error) {
+        // Se falhar, pelo menos o jogador pode ver o ranking (se houver outros).
+        console.error("Erro fatal ao salvar resultado final:", error);
+        navigate(`/results/${salaId}`); 
+    }
+
+
   }
 
   // VOLTAR

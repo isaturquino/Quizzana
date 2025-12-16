@@ -5,6 +5,7 @@ import Header from '../../components/layout/Header';
 import Button from '../../components/ui/Button';
 import { Search, Filter, ChevronLeft, ChevronRight, Clock, FileText, Users, MoreVertical } from 'lucide-react';
 import { useQuizzes } from '../../hooks/useQuiz';
+import { getLastCompletedSalaId } from '../../services/supabase/resultsService';
 import { deleteQuiz, toggleQuizStatus } from '../../services/supabase/quizService';
 import './BibliotecaQuizPage.css';
 
@@ -49,6 +50,24 @@ export default function BibliotecaQuizPage() {
   const handleCreateQuiz = () => {
     navigate('/admin/create-quiz');
   };
+
+  const handleViewResults = async (quizId) => {
+    try {
+        // 1. Acha o ID da sala mais recente
+        const salaId = await getLastCompletedSalaId(quizId);
+
+        if (salaId) {
+            // 2. Navega para os resultados daquela sala
+            navigate(`/results/${salaId}`); 
+        } else {
+            alert("Nenhuma sessão de quiz (sala) encontrada para este quiz.");
+        }
+    } catch (error) {
+        console.error("Erro ao navegar para resultados:", error);
+        alert("Erro ao tentar buscar resultados. Verifique o console.");
+    }
+};  
+
 
   // Filtrar quizzes
   const filteredQuizzes = quizzes.filter(quiz => {
@@ -246,6 +265,10 @@ export default function BibliotecaQuizPage() {
                           >
                             Deletar
                           </button>
+                          <button onClick={() => handleViewResults(quiz.id)}>
+                            📊 Resultados
+                          </button>
+
                         </div>
                       </div>
                     </div>

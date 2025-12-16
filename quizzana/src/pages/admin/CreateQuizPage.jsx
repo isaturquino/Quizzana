@@ -12,17 +12,19 @@ import { useQuestions } from "../../hooks/useQuestions"
 import { useCategories } from "../../hooks/useCategories"
 import { createQuiz, getQuizById, updateQuiz } from "../../services/supabase/quizService"
 import { AuthContext } from "../../context/AuthContext"
+// Mantenha apenas o que é usado: 'deactivateSala' e 'getLastCompletedSalaId' foram removidos.
 import Button from "../../components/ui/Button"
 import "./CreateQuizPage.css"
 
 function CreateQuiz() {
-  const { id } = useParams()
+  // Usando 'quizId' consistentemente para o ID da URL
+  const { id: quizId } = useParams()
   const navigate = useNavigate()
   const { user } = useContext(AuthContext)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isLoadingQuiz, setIsLoadingQuiz] = useState(false)
-  const isEditing = !!id
+  const isEditing = !!quizId // Checa se está em modo de edição
 
   const [showModal, setShowModal] = useState(false)
   const [createdQuizData, setCreatedQuizData] = useState({
@@ -53,10 +55,11 @@ function CreateQuiz() {
   const { categories, loading: loadingCategories } = useCategories()
 
   useEffect(() => {
-    if (id && user) { 
-      loadQuizData(id)
+    // Usa 'quizId' do useParams
+    if (quizId && user) { 
+      loadQuizData(quizId)
     }
-  }, [id, user])
+  }, [quizId, user])
 
   const loadQuizData = async (quizId) => {
     setIsLoadingQuiz(true)
@@ -131,7 +134,7 @@ function CreateQuiz() {
       return
     }
 
-    // ✅ VALIDAÇÃO: Verifica se número de questões selecionadas está correto
+    // VALIDAÇÃO: Verifica se número de questões selecionadas está correto
     if (selectedQuestions.length !== configuracoes.numeroQuestoes) {
       alert(`Você deve selecionar exatamente ${configuracoes.numeroQuestoes} questões! (Atualmente: ${selectedQuestions.length})`)
       return
@@ -143,7 +146,8 @@ function CreateQuiz() {
       let result
       
       if (isEditing) {
-        result = await updateQuiz(id, quizData, configuracoes, selectedQuestions)
+        // Usa quizId
+        result = await updateQuiz(quizId, quizData, configuracoes, selectedQuestions)
         
         if (result.success) {
           alert("Quiz atualizado com sucesso!")
@@ -176,6 +180,17 @@ function CreateQuiz() {
     }
   }
 
+  // --- Handler de Compartilhamento ---
+  const handleOpenShareModal = (id) => {
+    // Esta função pode ser substituída pela lógica do seu modal real
+    const shareLink = `${window.location.origin}/join/${id}`;
+    navigator.clipboard.writeText(shareLink);
+    alert(`Link de compartilhamento copiado! Envie este link ou o ID: ${id}`);
+  };
+
+  /* * A função 'handleFinalizarSala' foi removida, conforme sua solicitação.
+   */
+
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.question.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === "todas" || q.categoria_id === Number(selectedCategory)
@@ -207,17 +222,36 @@ function CreateQuiz() {
 
         <div className="create-quiz-content">
           <div className="page-header-quiz">
-            <div>
+            <div className="header-titles">
               <h1 className="page-title-quiz">
                 {isEditing ? 'Editar Quiz' : 'Criar Novo Quiz'}
               </h1>
               <p className="page-subtitle-quiz">Configure as opções e selecione as questões</p>
             </div>
             
+            {/* BOTÕES DE AÇÃO NO MODO EDIÇÃO */}
+            {isEditing && (
+                <div className="edit-actions-buttons">
+                    {/* Botão Compartilhar Quiz (AGORA VISÍVEL) */}
+                    <Button 
+                        className="btn-secondary" 
+                        onClick={() => handleOpenShareModal(quizId)} 
+                        disabled={isCreating}
+                        style={{ marginRight: '10px' }}
+                    >
+                        🔗 Compartilhar Quiz
+                    </Button>
+                </div>
+            )}
+
+            {/* BOTÃO PRINCIPAL (SALVAR/CRIAR) */}
             <Button 
               className="btn-primary" 
               onClick={handleCreateQuiz}
-              disabled={isCreating}
+              disabled={isCreating || selectedQuestions.length !== configuracoes.numeroQuestoes}
+              style={{
+                opacity: selectedQuestions.length !== configuracoes.numeroQuestoes ? 0.6 : 1
+              }}
             >
               {isCreating ? "Salvando..." : (isEditing ? "Salvar Alterações →" : "Criar Quiz →")}
             </Button>
